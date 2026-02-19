@@ -331,6 +331,8 @@ model WorkoutSet {
   weight                   Decimal?               @db.Decimal(10,2)
   weightUnit               WeightUnit?
   durationSec              Int?
+  rir                      Int?
+  painLevel                PainLevel?
 
   workoutSessionExercise   WorkoutSessionExercise @relation(fields: [workoutSessionExerciseId], references: [id], onDelete: Cascade)
 
@@ -349,6 +351,13 @@ enum WorkoutSetType {
 enum WeightUnit {
   kg
   lbs
+}
+
+enum PainLevel {
+  NONE
+  MILD
+  MODERATE
+  SEVERE
 }
 
 // ========================================

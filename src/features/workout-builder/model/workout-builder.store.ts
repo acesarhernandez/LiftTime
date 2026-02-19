@@ -36,6 +36,7 @@ interface WorkoutBuilderState {
   prevStep: () => void;
   setSelectionMode: (mode: WorkoutSelectionMode) => void;
   setTrainingGoal: (goal: WorkoutTrainingGoal) => void;
+  setEquipment: (equipment: ExerciseAttributeValueEnum[]) => void;
   toggleEquipment: (equipment: ExerciseAttributeValueEnum) => void;
   clearEquipment: () => void;
   toggleMuscle: (muscle: ExerciseAttributeValueEnum) => void;
@@ -43,6 +44,8 @@ interface WorkoutBuilderState {
   fetchExercises: () => Promise<void>;
   setExercisesOrder: (order: string[]) => void;
   setExercisesByMuscle: (exercisesByMuscle: any[]) => void;
+  addExercise: (exercise: any, muscle: ExerciseAttributeValueEnum) => void;
+  clearSelectedExercises: () => void;
   shuffleExercise: (exerciseId: string, muscle: ExerciseAttributeValueEnum) => Promise<void>;
   pickExercise: (exerciseId: string) => Promise<void>;
   deleteExercise: (exerciseId: string) => void;
@@ -80,6 +83,7 @@ export const useWorkoutBuilderStore = create<WorkoutBuilderState>((set, get) => 
       exercisesOrder: [],
     })),
   setTrainingGoal: (goal) => set({ trainingGoal: goal }),
+  setEquipment: (equipment) => set({ selectedEquipment: equipment }),
 
   toggleEquipment: (equipment) =>
     set((state) => ({
@@ -126,6 +130,39 @@ export const useWorkoutBuilderStore = create<WorkoutBuilderState>((set, get) => 
   setExercisesOrder: (order) => set({ exercisesOrder: order }),
 
   setExercisesByMuscle: (exercisesByMuscle) => set({ exercisesByMuscle }),
+
+  addExercise: (exercise, muscle) =>
+    set((state) => {
+      const muscleGroupIndex = state.exercisesByMuscle.findIndex((group) => group.muscle === muscle);
+      const nextExercisesByMuscle = [...state.exercisesByMuscle];
+
+      if (muscleGroupIndex === -1) {
+        nextExercisesByMuscle.push({ muscle, exercises: [exercise] });
+      } else {
+        const existingExercises = nextExercisesByMuscle[muscleGroupIndex].exercises;
+        const exerciseExists = existingExercises.some((ex: any) => ex.id === exercise.id);
+
+        if (exerciseExists) {
+          return state;
+        }
+
+        nextExercisesByMuscle[muscleGroupIndex] = {
+          ...nextExercisesByMuscle[muscleGroupIndex],
+          exercises: [...existingExercises, exercise],
+        };
+      }
+
+      return {
+        exercisesByMuscle: nextExercisesByMuscle,
+        exercisesOrder: state.exercisesOrder.includes(exercise.id) ? state.exercisesOrder : [...state.exercisesOrder, exercise.id],
+      };
+    }),
+
+  clearSelectedExercises: () =>
+    set({
+      exercisesByMuscle: [],
+      exercisesOrder: [],
+    }),
 
   deleteExercise: (exerciseId) =>
     set((state) => ({

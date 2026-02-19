@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { ExerciseAttributeValueEnum, WorkoutSetType, WeightUnit } from "@prisma/client";
+import { ExerciseAttributeValueEnum, PainLevel, WorkoutSetType, WeightUnit } from "@prisma/client";
 
 import { workoutSessionStatuses } from "@/shared/lib/workout-session/types/workout-session";
 import { prisma } from "@/shared/lib/prisma";
@@ -20,6 +20,8 @@ const legacyWorkoutSetSchema = z.object({
   valuesInt: z.array(z.number()).optional(),
   valuesSec: z.array(z.number()).optional(),
   units: z.array(z.string()).optional(),
+  rir: z.number().int().min(0).max(10).optional().nullable(),
+  painLevel: z.nativeEnum(PainLevel).optional().nullable(),
   completed: z.boolean(),
 });
 
@@ -35,6 +37,8 @@ const newWorkoutSetSchema = z.object({
   weight: z.union([z.number(), z.string()]).optional().nullable(),
   weightUnit: z.nativeEnum(WeightUnit).optional().nullable(),
   durationSec: z.number().int().optional().nullable(),
+  rir: z.number().int().min(0).max(10).optional().nullable(),
+  painLevel: z.nativeEnum(PainLevel).optional().nullable(),
   completed: z.boolean(),
 });
 

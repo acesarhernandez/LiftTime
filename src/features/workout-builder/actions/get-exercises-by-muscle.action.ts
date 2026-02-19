@@ -8,13 +8,13 @@ import { actionClient } from "@/shared/api/safe-actions";
 
 
 const getExercisesByMuscleSchema = z.object({
-  equipment: z.array(z.nativeEnum(ExerciseAttributeValueEnum)),
+  equipment: z.array(z.nativeEnum(ExerciseAttributeValueEnum)).optional(),
 });
 
 export const getExercisesByMuscleAction = actionClient
   .schema(getExercisesByMuscleSchema)
   .action(async ({ parsedInput }) => {
-    const { equipment } = parsedInput;
+    const { equipment = [] } = parsedInput;
 
     try {
       const [primaryMuscleAttributeName, equipmentAttributeName] = await Promise.all([
@@ -48,44 +48,49 @@ export const getExercisesByMuscleAction = actionClient
 
       const exercisesByMuscle = await Promise.all(
         muscleGroups.map(async (muscle) => {
+          const whereConditions: any[] = [
+            {
+              attributes: {
+                some: {
+                  attributeNameId: primaryMuscleAttributeName.id,
+                  attributeValue: {
+                    value: muscle,
+                  },
+                },
+              },
+            },
+            // Exclude stretching exercises
+            {
+              NOT: {
+                attributes: {
+                  some: {
+                    attributeValue: {
+                      value: "STRETCHING",
+                    },
+                  },
+                },
+              },
+            },
+          ];
+
+          if (equipment.length > 0) {
+            whereConditions.push({
+              attributes: {
+                some: {
+                  attributeNameId: equipmentAttributeName.id,
+                  attributeValue: {
+                    value: {
+                      in: equipment,
+                    },
+                  },
+                },
+              },
+            });
+          }
+
           const exercises = await prisma.exercise.findMany({
             where: {
-              AND: [
-                {
-                  attributes: {
-                    some: {
-                      attributeNameId: primaryMuscleAttributeName.id,
-                      attributeValue: {
-                        value: muscle,
-                      },
-                    },
-                  },
-                },
-                {
-                  attributes: {
-                    some: {
-                      attributeNameId: equipmentAttributeName.id,
-                      attributeValue: {
-                        value: {
-                          in: equipment,
-                        },
-                      },
-                    },
-                  },
-                },
-                // Exclude stretching exercises
-                {
-                  NOT: {
-                    attributes: {
-                      some: {
-                        attributeValue: {
-                          value: "STRETCHING",
-                        },
-                      },
-                    },
-                  },
-                },
-              ],
+              AND: whereConditions,
             },
             include: {
               attributes: {

@@ -21,6 +21,12 @@ import { HorizontalBottomBanner } from "@/components/ads";
 import { FavoriteExerciseButton } from "../../workout-builder/ui/favorite-exercise-button";
 import { WorkoutSessionSet } from "./workout-session-set";
 
+const REST_SECONDS_BY_GOAL: Record<string, number> = {
+  STRENGTH: 150,
+  HYPERTROPHY: 90,
+  ENDURANCE: 60
+};
+
 export function WorkoutSessionSets({
   showCongrats,
   onCongrats,
@@ -41,6 +47,12 @@ export function WorkoutSessionSets({
   const prevExerciseIndexRef = useRef<number>(currentExerciseIndex);
   const syncDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { syncFavoriteExercises } = useSyncFavoriteExercises();
+  const [activeRestTimer, setActiveRestTimer] = useState<{
+    endsAt: number;
+    durationSec: number;
+    goal: string;
+  } | null>(null);
+  const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
 
   // auto-scroll to current exercise when index changes (but not when adding sets)
   useEffect(() => {
@@ -78,6 +90,26 @@ export function WorkoutSessionSets({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!activeRestTimer) {
+      setRestSecondsRemaining(0);
+      return;
+    }
+
+    const updateRemaining = () => {
+      const nextRemaining = Math.max(0, Math.ceil((activeRestTimer.endsAt - Date.now()) / 1000));
+      setRestSecondsRemaining(nextRemaining);
+
+      if (nextRemaining <= 0) {
+        setActiveRestTimer(null);
+      }
+    };
+
+    updateRemaining();
+    const intervalId = setInterval(updateRemaining, 250);
+    return () => clearInterval(intervalId);
+  }, [activeRestTimer]);
 
   if (showCongrats) {
     return (
@@ -134,6 +166,13 @@ export function WorkoutSessionSets({
 
   const handleFinishSet = (exerciseIndex: number, setIndex: number) => {
     finishSet(exerciseIndex, setIndex);
+    const goal = session?.trainingGoal ?? "HYPERTROPHY";
+    const defaultRestDuration = REST_SECONDS_BY_GOAL[goal] ?? REST_SECONDS_BY_GOAL.HYPERTROPHY;
+    setActiveRestTimer({
+      endsAt: Date.now() + defaultRestDuration * 1000,
+      durationSec: defaultRestDuration,
+      goal
+    });
     void syncSessions();
   };
 
@@ -147,15 +186,62 @@ export function WorkoutSessionSets({
     }, 500);
   };
 
+  const formatDuration = (durationSec: number) => {
+    const minutes = Math.floor(durationSec / 60);
+    const seconds = durationSec % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const formatLastPerformance = (exerciseId: string) => {
+    const lastPerformance = exerciseDetailsMap[exerciseId]?.lastPerformance;
+    if (!lastPerformance) {
+      return null;
+    }
+
+    if (typeof lastPerformance.weight === "number" && typeof lastPerformance.reps === "number") {
+      return `${lastPerformance.reps} reps @ ${lastPerformance.weight} ${lastPerformance.weightUnit ?? "lbs"}`;
+    }
+
+    if (typeof lastPerformance.reps === "number") {
+      return `${lastPerformance.reps} reps`;
+    }
+
+    if (typeof lastPerformance.durationSec === "number") {
+      return `${lastPerformance.durationSec}s`;
+    }
+
+    return null;
+  };
+
   return (
     <div className="w-full max-w-3xl mx-auto pb-8 px-3 sm:px-6">
       <div className="mb-6">
         <PremiumUpsellAlert />
       </div>
+      {activeRestTimer && (
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-xs uppercase tracking-wide opacity-80">Auto Rest Timer ({activeRestTimer.goal})</div>
+              <div className="text-2xl font-bold mt-1">{formatDuration(restSecondsRemaining)}</div>
+              <div className="text-xs opacity-80 mt-1">Default goal rest: {activeRestTimer.durationSec}s</div>
+            </div>
+            <Button
+              className="border-emerald-500/40 text-emerald-800 dark:text-emerald-100"
+              onClick={() => setActiveRestTimer(null)}
+              size="small"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
       <ol className="relative border-l-2 ml-2 border-slate-200 dark:border-slate-700">
         {session.exercises.map((ex, idx) => {
           const allSetsCompleted = ex.sets.length > 0 && ex.sets.every((set) => set.completed);
           const exerciseName = locale === "fr" ? ex.name : ex.nameEn;
+          const lastPerformanceLabel = formatLastPerformance(ex.id);
 
           const details = exerciseDetailsMap[ex.id];
           return (
@@ -207,6 +293,11 @@ export function WorkoutSessionSets({
                   )}
                 >
                   <span className="text-xl leading-[1.3] flex-1">{exerciseName}</span>
+                  {lastPerformanceLabel && (
+                    <span className="flex text-xs mt-1 text-emerald-600 dark:text-emerald-300">
+                      Last session: {lastPerformanceLabel}
+                    </span>
+                  )}
                   {details?.introduction && (
                     <span
                       className="flex text-xs mt-1 text-slate-500 dark:text-slate-400 underline cursor-pointer hover:text-blue-600"

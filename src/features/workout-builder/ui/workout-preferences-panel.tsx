@@ -37,17 +37,17 @@ const TRAINING_GOAL_OPTIONS: TrainingGoalOption[] = [
   {
     id: "STRENGTH",
     title: "Strength",
-    description: "Lower reps, heavier loads, and steady load progression."
+    description: "Lower reps, heavier loads, and longer rest periods (~150s default)."
   },
   {
     id: "HYPERTROPHY",
     title: "Hypertrophy",
-    description: "Moderate reps and load to maximize muscle growth over time."
+    description: "Moderate reps/load for muscle growth with moderate rest (~90s default)."
   },
   {
     id: "ENDURANCE",
     title: "Endurance / Toning",
-    description: "Higher reps, lighter loads, and improved muscular endurance."
+    description: "Higher reps, lighter loads, and shorter rest (~60s default)."
   }
 ];
 
@@ -55,40 +55,44 @@ export function WorkoutPreferencesPanel({
   selectionMode,
   trainingGoal,
   onSelectionModeChange,
-  onTrainingGoalChange
+  onTrainingGoalChange,
+  showSelectionMode = true
 }: {
   selectionMode: WorkoutSelectionMode;
   trainingGoal: WorkoutTrainingGoal;
   onSelectionModeChange: (mode: WorkoutSelectionMode) => void;
   onTrainingGoalChange: (goal: WorkoutTrainingGoal) => void;
+  showSelectionMode?: boolean;
 }) {
   return (
     <div className="space-y-5 rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-slate-900">
-      <div>
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Workout Build Style</h3>
-        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Choose how exercises are selected for this session.</p>
-        <div className="mt-3 grid gap-2 md:grid-cols-3">
-          {SELECTION_MODE_OPTIONS.map((option) => {
-            const isSelected = option.id === selectionMode;
-            return (
-              <button
-                className={cn(
-                  "text-left rounded-lg border px-3 py-3 transition-colors",
-                  isSelected
-                    ? "border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-950/50 dark:text-blue-100"
-                    : "border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                )}
-                key={option.id}
-                onClick={() => onSelectionModeChange(option.id)}
-                type="button"
-              >
-                <div className="font-medium">{option.title}</div>
-                <div className="text-xs mt-1 opacity-80">{option.description}</div>
-              </button>
-            );
-          })}
+      {showSelectionMode && (
+        <div>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Workout Build Style</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Choose how exercises are selected for this session.</p>
+          <div className="mt-3 grid gap-2 md:grid-cols-3">
+            {SELECTION_MODE_OPTIONS.map((option) => {
+              const isSelected = option.id === selectionMode;
+              return (
+                <button
+                  className={cn(
+                    "text-left rounded-lg border px-3 py-3 transition-colors",
+                    isSelected
+                      ? "border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-950/50 dark:text-blue-100"
+                      : "border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  )}
+                  key={option.id}
+                  onClick={() => onSelectionModeChange(option.id)}
+                  type="button"
+                >
+                  <div className="font-medium">{option.title}</div>
+                  <div className="text-xs mt-1 opacity-80">{option.description}</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Training Goal</h3>
@@ -119,8 +123,16 @@ export function WorkoutPreferencesPanel({
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-100">
         <p className="font-semibold">How auto-populate works</p>
         <p className="mt-1">
-          Recommendations use your recent completed sets, double progression rules, and weekly muscle workload. High workload reduces
-          suggested sets, while low workload can add a set when performance is stable.
+          Recommendations start from your recent completed sets for the same exercise. The system uses double progression: progress reps
+          within the target range first, then increase load in small steps once rep quality is stable.
+        </p>
+        <p className="mt-1">
+          Weekly set volume is used as a fatigue proxy. If a muscle group is already above its weekly target range, recommendation volume is
+          reduced. If volume is below target and performance is consistent, one working set can be added.
+        </p>
+        <p className="mt-1">
+          Load jumps are rounded to practical gym increments (plates/dumbbells), and your selected goal sets the default rest interval after
+          each completed set.
         </p>
       </div>
     </div>

@@ -19,12 +19,15 @@ export function useWorkoutStepper() {
     prevStep,
     setSelectionMode,
     setTrainingGoal,
+    setEquipment,
     toggleEquipment,
     clearEquipment,
     toggleMuscle,
     clearMuscles,
     fetchExercises,
     setExercisesOrder,
+    addExercise,
+    clearSelectedExercises,
     shuffleExercise,
     pickExercise,
     deleteExercise,
@@ -53,6 +56,7 @@ export function useWorkoutStepper() {
     prevStep,
     setSelectionMode,
     setTrainingGoal,
+    setEquipment,
 
     // equipment
     toggleEquipment,
@@ -72,6 +76,8 @@ export function useWorkoutStepper() {
     // order
     exercisesOrder,
     setExercisesOrder,
+    addExercise,
+    clearSelectedExercises,
 
     // shuffle
     shuffleExercise,

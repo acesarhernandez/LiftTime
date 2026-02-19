@@ -11,7 +11,7 @@ import { DiscordSvg } from "@/components/svg/DiscordSvg";
 
 const SOCIAL_LINKS = [
   {
-    href: "https://github.com/Snouzy/workout-cool",
+    href: "https://github.com/acesarhernandez",
     icon: Github,
     label: "GitHub",
   },
@@ -26,7 +26,7 @@ const SOCIAL_LINKS = [
     label: "Email",
   },
   {
-    href: "https://discord.gg/NtrsUBuHUB",
+    href: "https://discordapp.com/users/628124631987126273",
     icon: DiscordSvg,
     label: "Discord",
   },

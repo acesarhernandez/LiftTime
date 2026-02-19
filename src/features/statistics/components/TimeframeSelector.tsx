@@ -14,10 +14,12 @@ interface TimeframeSelectorProps {
 }
 
 const TIMEFRAME_OPTIONS = [
+  { value: "1week" as StatisticsTimeframe, labelKey: "statistics.timeframes.1week" },
+  { value: "2weeks" as StatisticsTimeframe, labelKey: "statistics.timeframes.2weeks" },
   { value: "4weeks" as StatisticsTimeframe, labelKey: "statistics.timeframes.4weeks" },
   { value: "8weeks" as StatisticsTimeframe, labelKey: "statistics.timeframes.8weeks" },
   { value: "12weeks" as StatisticsTimeframe, labelKey: "statistics.timeframes.12weeks" },
-  { value: "1year" as StatisticsTimeframe, labelKey: "statistics.timeframes.1year" },
+  { value: "1year" as StatisticsTimeframe, labelKey: "statistics.timeframes.1year" }
 ];
 
 export function TimeframeSelector({ selected, onSelect, className }: TimeframeSelectorProps) {

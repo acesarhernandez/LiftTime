@@ -1397,6 +1397,11 @@ export default {
     title: "What's New",
     release_notes: "Release Notes",
     notes: {
+      note_2026_02_19: {
+        title: "💪 Smarter Workout Flow + Progress Tracking",
+        content:
+          "<li>Auto-populated sets now use recent performance, training goal, and muscle workload signals</li><li>Workout builder now supports 3 styles: Equipment + Muscles, Equipment Only, or Pick Individually</li><li>Training goals (Strength, Hypertrophy, Endurance) now shape reps, set style, and default rest timing</li><li>Warm-up recommendations are included before working sets when suggestions are generated</li><li>New Muscle Progress dashboard shows target status (under target, in target, high fatigue)</li><li>Statistics now include shorter windows (1 week and 2 weeks) for faster feedback</li>",
+      },
       note_2025_10_29: {
         title: "🍑 New Booty Program Released!",
         content:
@@ -1875,10 +1880,12 @@ export default {
 
     // Timeframes
     timeframes: {
+      "1week": "1 Week",
+      "2weeks": "2 Weeks",
       "4weeks": "4 Weeks",
       "8weeks": "8 Weeks",
       "12weeks": "12 Weeks",
-      "1year": "1 Year",
+      "1year": "1 Year"
     },
 
     // Error messages

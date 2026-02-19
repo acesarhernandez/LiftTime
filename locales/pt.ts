@@ -1401,6 +1401,11 @@ export default {
     title: "Novidades",
     release_notes: "Notas de Lançamento",
     notes: {
+      note_2026_02_19: {
+        title: "💪 Fluxo de treino mais inteligente + acompanhamento de progresso",
+        content:
+          "<li>As séries auto-preenchidas agora usam desempenho recente, objetivo de treino e carga muscular</li><li>O construtor de treino agora suporta 3 estilos: Equipamento + Músculos, Só Equipamento, ou Escolher Individualmente</li><li>Os objetivos (Força, Hipertrofia, Resistência) agora ajustam repetições, estilo de séries e descanso padrão</li><li>As recomendações agora incluem séries de aquecimento antes das séries de trabalho</li><li>Novo painel de Progresso Muscular com estado da meta (abaixo, na meta, fadiga alta)</li><li>As estatísticas agora incluem janelas curtas (1 semana e 2 semanas) para feedback mais rápido</li>",
+      },
       note_2025_10_29: {
         title: "🍑 Novo Programa Booty Lançado!",
         content:
@@ -1879,10 +1884,12 @@ export default {
 
     // Timeframes
     timeframes: {
+      "1week": "1 Semana",
+      "2weeks": "2 Semanas",
       "4weeks": "4 Semanas",
       "8weeks": "8 Semanas",
       "12weeks": "12 Semanas",
-      "1year": "1 Ano",
+      "1year": "1 Ano"
     },
 
     // Error messages

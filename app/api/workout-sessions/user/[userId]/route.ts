@@ -80,6 +80,8 @@ export async function GET(request: NextRequest) {
           valuesInt: set.valuesInt || [],
           valuesSec: set.valuesSec || [],
           units: set.units || [],
+          rir: set.rir ?? null,
+          painLevel: set.painLevel ?? null,
           completed: set.completed,
         })),
       })),

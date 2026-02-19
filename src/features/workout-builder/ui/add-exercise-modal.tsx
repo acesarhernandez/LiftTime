@@ -42,7 +42,7 @@ export const AddExerciseModal = ({ isOpen, onClose, selectedEquipment }: AddExer
   const [expandedMuscle, setExpandedMuscle] = useState<string | null>(null);
   const { value: isFavoritesExpanded, setTrue: openFavorites, setFalse: closeFavorites } = useBoolean(false);
 
-  const { exercisesByMuscle, setExercisesByMuscle, setExercisesOrder, exercisesOrder } = useWorkoutBuilderStore();
+  const { addExercise } = useWorkoutBuilderStore();
   const { data: muscleGroups, isLoading } = useQuery({
     queryKey: ["exercises-by-muscle", selectedEquipment],
     queryFn: async () => {
@@ -52,7 +52,7 @@ export const AddExerciseModal = ({ isOpen, onClose, selectedEquipment }: AddExer
       }
       return result?.data as MuscleGroup[];
     },
-    enabled: isOpen && selectedEquipment.length > 0,
+    enabled: isOpen,
   });
 
   // Use the favorites hook
@@ -72,31 +72,7 @@ export const AddExerciseModal = ({ isOpen, onClose, selectedEquipment }: AddExer
   }, [isOpen, onClose]);
 
   const handleAddExercise = (exercise: ExerciseWithAttributes, muscle: ExerciseAttributeValueEnum) => {
-    // If we're in the stepper, add to the workout builder store
-    const muscleGroupIndex = exercisesByMuscle.findIndex((group) => group.muscle === muscle);
-
-    if (muscleGroupIndex === -1) {
-      const newExercisesByMuscle = [...exercisesByMuscle, { muscle, exercises: [exercise] }];
-      setExercisesByMuscle(newExercisesByMuscle);
-    } else {
-      // Check if exercise already exists in this muscle group to avoid duplicates
-      const existingExercises = exercisesByMuscle[muscleGroupIndex].exercises;
-      const exerciseExists = existingExercises.some((ex: ExerciseWithAttributes) => ex.id === exercise.id);
-
-      if (!exerciseExists) {
-        const newExercisesByMuscle = [...exercisesByMuscle];
-        newExercisesByMuscle[muscleGroupIndex] = {
-          ...newExercisesByMuscle[muscleGroupIndex],
-          exercises: [...newExercisesByMuscle[muscleGroupIndex].exercises, exercise],
-        };
-        setExercisesByMuscle(newExercisesByMuscle);
-      }
-    }
-
-    // Only add to exercisesOrder if not already present to avoid duplicates
-    const newExercisesOrder = exercisesOrder.includes(exercise.id) ? exercisesOrder : [...exercisesOrder, exercise.id];
-    setExercisesOrder(newExercisesOrder);
-
+    addExercise(exercise, muscle);
     onClose();
   };
 

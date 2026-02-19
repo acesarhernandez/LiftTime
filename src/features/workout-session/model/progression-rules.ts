@@ -1,9 +1,9 @@
-import { ExerciseAttributeNameEnum, ExerciseAttributeValueEnum, WeightUnit, WorkoutSetType as PrismaWorkoutSetType } from "@prisma/client";
+import { ExerciseAttributeNameEnum, ExerciseAttributeValueEnum, PainLevel, WeightUnit, WorkoutSetType as PrismaWorkoutSetType } from "@prisma/client";
 
 import { convertWeight } from "@/shared/lib/weight-conversion";
 import { SuggestedWorkoutSet, WorkoutSetDbType, WorkoutSetType, WorkoutSetUnit } from "@/features/workout-session/types/workout-set";
-import { ExerciseAttribute } from "@/entities/exercise/types/exercise.types";
 import { MuscleFatigueStatus } from "@/features/workout-session/model/workout-session-read-model";
+import { ExerciseAttribute } from "@/entities/exercise/types/exercise.types";
 
 interface RepRange {
   min: number;
@@ -53,6 +53,8 @@ export interface HistoricalSet {
   weight: number | null;
   weightUnit: WeightUnit | null;
   durationSec: number | null;
+  rir?: number | null;
+  painLevel?: PainLevel | null;
 }
 
 interface HistoricalWorkout {
@@ -66,6 +68,8 @@ interface SetOutcome {
   failure: boolean;
   averageReps: number | null;
   averageWeight: number | null;
+  averageRir: number | null;
+  hasHighPain: boolean;
 }
 
 export interface ExerciseRecommendationInput {
@@ -147,6 +151,12 @@ const MUSCLE_BASE_WEIGHTS_KG: Partial<Record<ExerciseAttributeValueEnum, number>
 };
 
 const WARMUP_REP_SCHEME = [8, 5];
+
+const GOAL_RIR_TARGETS: Record<ProgressionGoal, RepRange> = {
+  STRENGTH: { min: 2, max: 3 },
+  HYPERTROPHY: { min: 1, max: 3 },
+  ENDURANCE: { min: 2, max: 4 }
+};
 
 function getAttributeName(attribute: ExerciseAttribute): ExerciseAttributeNameEnum {
   return typeof attribute.attributeName === "string" ? attribute.attributeName : attribute.attributeName.name;
@@ -275,22 +285,30 @@ function evaluateWorkoutOutcome(workout: HistoricalWorkout, repRange: RepRange, 
       success: false,
       failure: false,
       averageReps: null,
-      averageWeight: null
+      averageWeight: null,
+      averageRir: null,
+      hasHighPain: false
     };
   }
 
   const repsValues = weightedSets.map((set) => set.reps as number);
   const convertedWeights = weightedSets.map((set) => toPreferredUnitWeight(set.weight as number, set.weightUnit, preferredUnit));
+  const rirValues = weightedSets
+    .map((set) => set.rir)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 
   const setCount = repsValues.length;
   const successSets = repsValues.filter((reps) => reps >= repRange.max).length;
   const failureSets = repsValues.filter((reps) => reps < repRange.min).length;
+  const hasHighPain = weightedSets.some((set) => set.painLevel === PainLevel.MODERATE || set.painLevel === PainLevel.SEVERE);
 
   return {
     success: successSets >= Math.ceil(setCount * 0.67),
     failure: failureSets >= Math.ceil(setCount * 0.67),
     averageReps: average(repsValues),
-    averageWeight: average(convertedWeights)
+    averageWeight: average(convertedWeights),
+    averageRir: average(rirValues),
+    hasHighPain
   };
 }
 
@@ -445,6 +463,7 @@ export function buildExerciseRecommendation(input: ExerciseRecommendationInput):
 
   const latestWorkout = workouts[0] ?? null;
   const latestOutcome = outcomes[0] ?? null;
+  const rirTarget = GOAL_RIR_TARGETS[goal];
 
   const defaultReps = Math.round((goalConfig.repRange.min + goalConfig.repRange.max) / 2);
   const workingRepsBase = latestOutcome?.averageReps !== null && latestOutcome?.averageReps !== undefined
@@ -498,6 +517,31 @@ export function buildExerciseRecommendation(input: ExerciseRecommendationInput):
     } else {
       workingReps = clamp(workingReps + 1, goalConfig.repRange.min, goalConfig.repRange.max);
       reason = "Progressing reps first at the same load (double progression).";
+
+      if (latestOutcome?.averageRir !== null && latestOutcome?.averageRir !== undefined) {
+        if (latestOutcome.averageRir < rirTarget.min) {
+          workingReps = clamp(workingReps - 1, goalConfig.repRange.min, goalConfig.repRange.max);
+          appendReason(`Last effort was very hard (RIR ${latestOutcome.averageRir.toFixed(1)}). Holding progression for recovery.`);
+        } else if (latestOutcome.averageRir > rirTarget.max + 1) {
+          appendReason(`Effort reserve was high (RIR ${latestOutcome.averageRir.toFixed(1)}). Progression remains active.`);
+        }
+      }
+    }
+  }
+
+  if (latestOutcome?.hasHighPain) {
+    const previousWorkingSets = workingSets;
+    workingSets = Math.max(2, workingSets - 1);
+
+    if (workingWeight !== null) {
+      workingWeight = roundLoadChange(workingWeight * (1 - goalConfig.deloadPercent), preferredUnit, equipment, "down");
+    }
+
+    workingReps = clamp(workingReps - 1, goalConfig.repRange.min, goalConfig.repRange.max);
+    appendReason("Pain/discomfort reported in the last session. Recommendation is adjusted conservatively.");
+
+    if (workingSets < previousWorkingSets) {
+      appendReason(`Reduced working sets from ${previousWorkingSets} to ${workingSets}.`);
     }
   }
 
@@ -505,13 +549,18 @@ export function buildExerciseRecommendation(input: ExerciseRecommendationInput):
     const previousWorkingSets = workingSets;
     workingSets = Math.max(2, workingSets - 1);
     workingReps = clamp(workingReps - 1, goalConfig.repRange.min, goalConfig.repRange.max);
+    const fatigueTargetMin = input.muscleTargetMinSets ?? goalConfig.defaultWorkingSets;
+    const fatigueTargetMax = input.muscleTargetMaxSets ?? goalConfig.defaultWorkingSets + 2;
 
     if (workingWeight !== null && failureStreak > 0) {
       workingWeight = roundLoadChange(workingWeight * (1 - goalConfig.deloadPercent), preferredUnit, equipment, "down");
     }
 
+    const effectiveSets = input.muscleCurrentWeekSets ?? 0;
+    const highFatigueReason =
+      `Current weekly muscle workload is high (${effectiveSets} effective sets, target ${fatigueTargetMin}-${fatigueTargetMax}).`;
     appendReason(
-      `Current weekly muscle workload is high (${input.muscleCurrentWeekSets ?? 0} effective sets, target ${input.muscleTargetMinSets ?? goalConfig.defaultWorkingSets}-${input.muscleTargetMaxSets ?? goalConfig.defaultWorkingSets + 2}). Reduced volume for recovery.`
+      `${highFatigueReason} Reduced volume for recovery.`
     );
 
     if (workingSets < previousWorkingSets) {

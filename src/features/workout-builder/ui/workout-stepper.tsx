@@ -16,6 +16,7 @@ import { SuggestedWorkoutSet } from "@/features/workout-session/types/workout-se
 import { useDonationModal } from "@/features/workout-session/hooks/use-donation-modal";
 import { getWorkoutRecommendationAction } from "@/features/workout-session/actions/get-workout-recommendation.action";
 import { WorkoutBuilderFooter } from "@/features/workout-builder/ui/workout-stepper-footer";
+import { getExercisesByMuscleAction } from "@/features/workout-builder/actions/get-exercises-by-muscle.action";
 import { useSession } from "@/features/auth/lib/auth-client";
 import { env } from "@/env";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export function WorkoutStepper() {
   const t = useI18n();
   const router = useRouter();
   const [fromSession, setFromSession] = useQueryState("fromSession");
+  const [isQuickStartAllWorkouts, setIsQuickStartAllWorkouts] = useState(false);
   const {
     currentStep,
     selectedEquipment,
@@ -54,6 +56,9 @@ export function WorkoutStepper() {
     prevStep,
     setSelectionMode,
     setTrainingGoal,
+    setEquipment,
+    addExercise,
+    clearSelectedExercises,
     toggleEquipment,
     clearEquipment,
     toggleMuscle,
@@ -73,6 +78,11 @@ export function WorkoutStepper() {
   }, []);
 
   const [flatExercises, setFlatExercises] = useState<{ id: string; muscle: string; exercise: ExerciseWithAttributes }[]>([]);
+  const [quickStartCatalogExercisesByMuscle, setQuickStartCatalogExercisesByMuscle] = useState<
+    { muscle: string; exercises: ExerciseWithAttributes[] }[]
+  >([]);
+  const [quickStartCatalogLoading, setQuickStartCatalogLoading] = useState(false);
+  const [quickStartCatalogError, setQuickStartCatalogError] = useState<string | null>(null);
 
   useEffect(() => {
     if (exercisesByMuscle.length > 0) {
@@ -91,10 +101,52 @@ export function WorkoutStepper() {
   }, [exercisesByMuscle]);
 
   useEffect(() => {
-    if (currentStep === 3 && !fromSession) {
+    if (currentStep === 3 && !fromSession && !isQuickStartAllWorkouts) {
       fetchExercises();
     }
-  }, [currentStep, selectedEquipment, selectedMuscles, selectionMode, fromSession]);
+  }, [currentStep, selectedEquipment, selectedMuscles, selectionMode, fromSession, isQuickStartAllWorkouts]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadQuickStartCatalog = async () => {
+      if (!(currentStep === 3 && isQuickStartAllWorkouts && !fromSession)) {
+        if (!isCancelled) {
+          setQuickStartCatalogExercisesByMuscle([]);
+          setQuickStartCatalogLoading(false);
+          setQuickStartCatalogError(null);
+        }
+        return;
+      }
+
+      setQuickStartCatalogLoading(true);
+      setQuickStartCatalogError(null);
+      try {
+        const result = await getExercisesByMuscleAction({});
+        if (result?.serverError) {
+          throw new Error(result.serverError);
+        }
+
+        if (!isCancelled) {
+          setQuickStartCatalogExercisesByMuscle((result?.data ?? []) as { muscle: string; exercises: ExerciseWithAttributes[] }[]);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setQuickStartCatalogError(error instanceof Error ? error.message : "Failed to load all workouts");
+        }
+      } finally {
+        if (!isCancelled) {
+          setQuickStartCatalogLoading(false);
+        }
+      }
+    };
+
+    void loadQuickStartCatalog();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentStep, fromSession, isQuickStartAllWorkouts]);
 
   const { isWorkoutActive, session, startWorkout, quitWorkout } = useWorkoutSession();
 
@@ -120,6 +172,15 @@ export function WorkoutStepper() {
 
   const handleDeleteExercise = (exerciseId: string) => {
     deleteExercise(exerciseId);
+  };
+
+  const handleToggleCatalogExercise = (exercise: ExerciseWithAttributes, muscle: string, isSelected: boolean) => {
+    if (isSelected) {
+      deleteExercise(exercise.id);
+      return;
+    }
+
+    addExercise(exercise, muscle as ExerciseAttributeValueEnum);
   };
 
   const addExerciseModal = useBoolean();
@@ -165,6 +226,10 @@ export function WorkoutStepper() {
       });
 
       let suggestedSetsByExerciseId: Record<string, SuggestedWorkoutSet[]> | undefined;
+      let lastPerformanceByExerciseId: Record<
+        string,
+        { startedAt: string; reps?: number | null; weight?: number | null; weightUnit?: "kg" | "lbs" | null; durationSec?: number | null }
+      > | undefined;
 
       if (!hasPresetSets && authSession?.user?.id) {
         const recommendationResult = await getWorkoutRecommendationAction({
@@ -182,10 +247,18 @@ export function WorkoutStepper() {
           console.error("Failed to fetch workout recommendations:", recommendationResult.serverError);
         } else if (recommendationResult?.data?.recommendationsByExerciseId) {
           suggestedSetsByExerciseId = recommendationResult.data.recommendationsByExerciseId;
+          lastPerformanceByExerciseId = recommendationResult.data.meta?.lastPerformanceByExerciseId;
         }
       }
 
-      startWorkout(orderedExercises, selectedEquipment, selectedMuscles, suggestedSetsByExerciseId);
+      startWorkout(
+        orderedExercises,
+        selectedEquipment,
+        selectedMuscles,
+        suggestedSetsByExerciseId,
+        trainingGoal,
+        lastPerformanceByExerciseId
+      );
     } finally {
       setIsStartingWorkout(false);
     }
@@ -207,11 +280,13 @@ export function WorkoutStepper() {
   };
 
   const handleToggleEquipment = (equipment: ExerciseAttributeValueEnum) => {
+    setIsQuickStartAllWorkouts(false);
     toggleEquipment(equipment);
     if (fromSession) setFromSession(null);
   };
 
   const handleClearEquipment = () => {
+    setIsQuickStartAllWorkouts(false);
     clearEquipment();
     if (fromSession) setFromSession(null);
   };
@@ -222,6 +297,7 @@ export function WorkoutStepper() {
   };
 
   const handleSelectionModeChange = (mode: "equipment_muscles" | "equipment_only" | "individual") => {
+    setIsQuickStartAllWorkouts(false);
     setSelectionMode(mode);
     if (fromSession) setFromSession(null);
   };
@@ -231,8 +307,20 @@ export function WorkoutStepper() {
     if (fromSession) setFromSession(null);
   };
 
+  const handleJumpToAllWorkouts = () => {
+    setIsQuickStartAllWorkouts(true);
+    clearSelectedExercises();
+    setEquipment([]);
+    setSelectionMode("individual");
+    goToStep(3);
+    if (fromSession) setFromSession(null);
+  };
+
   const handleStepClick = (stepNumber: number) => {
     if (stepNumber < currentStep) {
+      if (stepNumber < 3) {
+        setIsQuickStartAllWorkouts(false);
+      }
       goToStep(stepNumber as WorkoutBuilderStep);
     }
   };
@@ -295,11 +383,14 @@ export function WorkoutStepper() {
   }));
 
   const renderStepContent = () => {
+    const selectedExerciseIds = new Set(exercisesOrder);
+
     switch (currentStep) {
       case 1:
         return (
           <EquipmentSelection
             onClearEquipment={handleClearEquipment}
+            onJumpToAllWorkouts={handleJumpToAllWorkouts}
             onToggleEquipment={handleToggleEquipment}
             selectedEquipment={selectedEquipment}
           />
@@ -331,7 +422,31 @@ export function WorkoutStepper() {
           </div>
         );
       case 3:
-        return (
+        return isQuickStartAllWorkouts ? (
+          <div className="space-y-6">
+            <WorkoutPreferencesPanel
+              onSelectionModeChange={handleSelectionModeChange}
+              onTrainingGoalChange={handleTrainingGoalChange}
+              selectionMode={selectionMode}
+              showSelectionMode={false}
+              trainingGoal={trainingGoal}
+            />
+            <ExercisesSelection
+              error={quickStartCatalogError}
+              exercisesByMuscle={quickStartCatalogExercisesByMuscle}
+              isCatalogMode
+              isLoading={quickStartCatalogLoading}
+              onAdd={handleAddExercise}
+              onDelete={handleDeleteExercise}
+              onPick={handlePickExercise}
+              onShuffle={handleShuffleExercise}
+              onToggleCatalogExercise={handleToggleCatalogExercise}
+              selectedExerciseIds={selectedExerciseIds}
+              selectionMode={selectionMode}
+              shufflingExerciseId={shufflingExerciseId}
+            />
+          </div>
+        ) : (
           <ExercisesSelection
             error={exercisesError}
             exercisesByMuscle={exercisesByMuscle}

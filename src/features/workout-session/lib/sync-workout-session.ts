@@ -1,4 +1,4 @@
-import { ExerciseAttributeValueEnum, type Prisma, WorkoutSetType, WeightUnit } from "@prisma/client";
+import { ExerciseAttributeValueEnum, PainLevel, type Prisma, WorkoutSetType, WeightUnit } from "@prisma/client";
 
 import { ERROR_MESSAGES } from "@/shared/constants/errors";
 
@@ -10,6 +10,8 @@ interface LegacyWorkoutSetInput {
   valuesInt?: number[];
   valuesSec?: number[];
   units?: string[];
+  rir?: number | null;
+  painLevel?: PainLevel | string | null;
   completed: boolean;
 }
 
@@ -21,6 +23,8 @@ interface NormalizedWorkoutSetInput {
   weight?: number | string | null;
   weightUnit?: WeightUnit | string | null;
   durationSec?: number | null;
+  rir?: number | null;
+  painLevel?: PainLevel | string | null;
   completed: boolean;
 }
 
@@ -61,6 +65,7 @@ type SyncWorkoutSessionResult = { data: { id: string } } | { serverError: string
 
 const validWorkoutSetTypes = new Set(Object.values(WorkoutSetType));
 const validWeightUnits = new Set(Object.values(WeightUnit));
+const validPainLevels = new Set(Object.values(PainLevel));
 
 function normalizeWorkoutSetType(type: unknown): WorkoutSetType {
   if (typeof type === "string" && validWorkoutSetTypes.has(type as WorkoutSetType)) {
@@ -97,8 +102,19 @@ function normalizeWeightUnit(weightUnit: unknown, weight: number | null): Weight
   return null;
 }
 
+function normalizePainLevel(painLevel: unknown): PainLevel | null {
+  if (typeof painLevel === "string" && validPainLevels.has(painLevel as PainLevel)) {
+    return painLevel as PainLevel;
+  }
+
+  return null;
+}
+
 function isNormalizedSetShape(set: WorkoutSetSyncInput): set is NormalizedWorkoutSetInput {
-  return "reps" in set || "weight" in set || "durationSec" in set || "type" in set;
+  // Legacy sets always carry `types` + `valuesInt` arrays.
+  // Some legacy sets also include `type` (e.g. WARMUP/NORMAL), so `type` alone cannot
+  // be used to detect normalized shape.
+  return !("types" in set);
 }
 
 export function normalizeSet(set: WorkoutSetSyncInput): Prisma.WorkoutSetCreateWithoutWorkoutSessionExerciseInput {
@@ -106,6 +122,8 @@ export function normalizeSet(set: WorkoutSetSyncInput): Prisma.WorkoutSetCreateW
     const reps = parseNullableNumber(set.reps);
     const weight = parseNullableNumber(set.weight);
     const durationSec = parseNullableNumber(set.durationSec);
+    const rir = parseNullableNumber(set.rir);
+    const painLevel = normalizePainLevel(set.painLevel);
 
     return {
       setIndex: set.setIndex,
@@ -114,6 +132,8 @@ export function normalizeSet(set: WorkoutSetSyncInput): Prisma.WorkoutSetCreateW
       weight: weight !== null ? String(weight) : null,
       weightUnit: normalizeWeightUnit(set.weightUnit, weight),
       durationSec,
+      ...(rir !== null ? { rir } : {}),
+      ...(painLevel ? { painLevel } : {}),
       completed: set.completed ?? false,
     };
   }
@@ -131,6 +151,8 @@ export function normalizeSet(set: WorkoutSetSyncInput): Prisma.WorkoutSetCreateW
   const weight = weightIndex >= 0 ? parseNullableNumber(valuesInt[weightIndex]) : null;
   const durationSec = timeIndex >= 0 ? parseNullableNumber(valuesSec[timeIndex] ?? valuesSec[0]) : null;
   const weightUnit = weightIndex >= 0 ? normalizeWeightUnit(units[weightIndex], weight) : null;
+  const rir = parseNullableNumber(set.rir);
+  const painLevel = normalizePainLevel(set.painLevel);
 
   return {
     setIndex: set.setIndex,
@@ -139,6 +161,8 @@ export function normalizeSet(set: WorkoutSetSyncInput): Prisma.WorkoutSetCreateW
     weight: weight !== null ? String(weight) : null,
     weightUnit,
     durationSec,
+    ...(rir !== null ? { rir } : {}),
+    ...(painLevel ? { painLevel } : {}),
     completed: set.completed ?? false,
   };
 }

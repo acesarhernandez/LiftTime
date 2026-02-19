@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { ExerciseAttributeNameEnum, ExerciseAttributeValueEnum, WeightUnit, WorkoutSetType as PrismaWorkoutSetType } from "@prisma/client";
+import { ExerciseAttributeNameEnum, ExerciseAttributeValueEnum, PainLevel, WeightUnit, WorkoutSetType as PrismaWorkoutSetType } from "@prisma/client";
 
 import { ExerciseAttribute } from "@/entities/exercise/types/exercise.types";
 
@@ -25,6 +25,8 @@ function createHistoricalSet(params: {
   reps: number;
   weight: number;
   weightUnit?: WeightUnit;
+  rir?: number;
+  painLevel?: PainLevel;
 }): {
   workoutSessionId: string;
   startedAt: Date;
@@ -34,6 +36,8 @@ function createHistoricalSet(params: {
   weight: number;
   weightUnit: WeightUnit;
   durationSec: null;
+  rir?: number;
+  painLevel?: PainLevel;
 } {
   return {
     workoutSessionId: params.workoutSessionId,
@@ -43,7 +47,9 @@ function createHistoricalSet(params: {
     reps: params.reps,
     weight: params.weight,
     weightUnit: params.weightUnit ?? WeightUnit.kg,
-    durationSec: null
+    durationSec: null,
+    rir: params.rir,
+    painLevel: params.painLevel
   };
 }
 
@@ -200,5 +206,41 @@ describe("buildExerciseRecommendation", () => {
 
     assert.equal(recommendation.workingSets, 4);
     assert.equal(recommendation.sets.length, 4);
+  });
+
+  it("switches to conservative recommendations when pain was reported", () => {
+    const recentSets = [
+      createHistoricalSet({
+        workoutSessionId: "w1",
+        startedAt: "2026-02-18T10:00:00.000Z",
+        setIndex: 0,
+        reps: 10,
+        weight: 60,
+        painLevel: PainLevel.MODERATE
+      }),
+      createHistoricalSet({
+        workoutSessionId: "w1",
+        startedAt: "2026-02-18T10:00:00.000Z",
+        setIndex: 1,
+        reps: 10,
+        weight: 60,
+        painLevel: PainLevel.MODERATE
+      })
+    ];
+
+    const recommendation = buildExerciseRecommendation({
+      exerciseId: "exercise-1",
+      attributes: [
+        createAttribute(ExerciseAttributeNameEnum.PRIMARY_MUSCLE, ExerciseAttributeValueEnum.BACK),
+        createAttribute(ExerciseAttributeNameEnum.EQUIPMENT, ExerciseAttributeValueEnum.BARBELL),
+        createAttribute(ExerciseAttributeNameEnum.TYPE, ExerciseAttributeValueEnum.STRENGTH)
+      ],
+      recentSets,
+      goal: "HYPERTROPHY",
+      includeWarmupSets: false
+    });
+
+    assert.equal(recommendation.workingSets, 2);
+    assert.equal(recommendation.reason.includes("Pain/discomfort"), true);
   });
 });

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { headers } from "next/headers";
-import { ExerciseAttributeNameEnum, ExerciseAttributeValueEnum, WeightUnit } from "@prisma/client";
+import { ExerciseAttributeNameEnum, ExerciseAttributeValueEnum, WeightUnit, WorkoutSetType } from "@prisma/client";
 
 import { prisma } from "@/shared/lib/prisma";
 import { actionClient } from "@/shared/api/safe-actions";
@@ -11,6 +11,14 @@ import { buildExerciseRecommendation } from "@/features/workout-session/model/pr
 import { auth } from "@/features/auth/lib/better-auth";
 
 import type { HistoricalSet, ProgressionGoal } from "@/features/workout-session/model/progression-rules";
+
+interface LastPerformanceSnapshot {
+  startedAt: string;
+  reps: number | null;
+  weight: number | null;
+  weightUnit: WeightUnit | null;
+  durationSec: number | null;
+}
 
 const getWorkoutRecommendationSchema = z.object({
   userId: z.string(),
@@ -70,6 +78,8 @@ export const getWorkoutRecommendationAction = actionClient.schema(getWorkoutReco
           weight: true,
           weightUnit: true,
           durationSec: true,
+          rir: true,
+          painLevel: true,
           workoutSessionExercise: {
             select: {
               exerciseId: true,
@@ -119,7 +129,9 @@ export const getWorkoutRecommendationAction = actionClient.schema(getWorkoutReco
         reps: set.reps,
         weight: set.weight !== null ? Number(set.weight) : null,
         weightUnit: set.weightUnit,
-        durationSec: set.durationSec
+        durationSec: set.durationSec,
+        rir: set.rir,
+        painLevel: set.painLevel
       });
 
       setsByExerciseId.set(exerciseId, existing);
@@ -133,6 +145,31 @@ export const getWorkoutRecommendationAction = actionClient.schema(getWorkoutReco
     };
 
     const fallbackPrimaryMuscle = parsedInput.fallbackMuscles?.[0] ?? null;
+    const lastPerformanceByExerciseId = parsedInput.exerciseIds.reduce<Record<string, LastPerformanceSnapshot>>(
+      (accumulator, exerciseId) => {
+        const recentSets = setsByExerciseId.get(exerciseId) ?? [];
+        const lastWorkingSet = recentSets.find(
+          (set) =>
+            set.type !== WorkoutSetType.WARMUP &&
+            (set.reps !== null || set.weight !== null || set.durationSec !== null)
+        );
+        const fallbackSet = recentSets.find((set) => set.reps !== null || set.weight !== null || set.durationSec !== null);
+        const selectedSet = lastWorkingSet ?? fallbackSet;
+
+        if (selectedSet) {
+          accumulator[exerciseId] = {
+            startedAt: selectedSet.startedAt.toISOString(),
+            reps: selectedSet.reps ?? null,
+            weight: selectedSet.weight ?? null,
+            weightUnit: selectedSet.weightUnit ?? null,
+            durationSec: selectedSet.durationSec ?? null
+          };
+        }
+
+        return accumulator;
+      },
+      {}
+    );
 
     const recommendationsByExerciseId = parsedInput.exerciseIds.reduce<Record<string, ReturnType<typeof buildExerciseRecommendation>["sets"]>>(
       (accumulator, exerciseId) => {
@@ -180,6 +217,7 @@ export const getWorkoutRecommendationAction = actionClient.schema(getWorkoutReco
         goal,
         preferredUnit,
         analysisWorkoutCount: parsedInput.analysisWorkoutCount ?? 3,
+        lastPerformanceByExerciseId,
         generatedAt: new Date().toISOString()
       }
     };

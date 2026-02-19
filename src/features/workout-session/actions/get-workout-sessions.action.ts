@@ -14,6 +14,8 @@ function buildLegacySetShape(set: {
   weight: unknown;
   weightUnit: string | null;
   durationSec: number | null;
+  rir: number | null;
+  painLevel: string | null;
 }) {
   const types: string[] = [];
   const valuesInt: number[] = [];
@@ -45,6 +47,8 @@ function buildLegacySetShape(set: {
     valuesInt: valuesInt.length > 0 ? valuesInt : undefined,
     valuesSec: valuesSec.length > 0 ? valuesSec : undefined,
     units: units.length > 0 ? units : undefined,
+    rir: set.rir,
+    painLevel: set.painLevel,
   };
 }
 

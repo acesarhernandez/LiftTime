@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { workoutSessionLocal } from "@/shared/lib/workout-session/workout-session.local";
 import { WorkoutSession } from "@/shared/lib/workout-session/types/workout-session";
 import { convertWeight, type WeightUnit } from "@/shared/lib/weight-conversion";
-import { SuggestedWorkoutSet, WorkoutSessionExercise, WorkoutSet, WorkoutSetType, WorkoutSetUnit } from "@/features/workout-session/types/workout-set";
+import { LastExercisePerformance, SuggestedWorkoutSet, WorkoutSessionExercise, WorkoutSet, WorkoutSetType, WorkoutSetUnit } from "@/features/workout-session/types/workout-set";
 import { useWorkoutBuilderStore } from "@/features/workout-builder/model/workout-builder.store";
 import { ExerciseWithAttributes } from "@/entities/exercise/types/exercise.types";
 
@@ -36,7 +36,9 @@ interface WorkoutSessionState {
     exercises: ExerciseWithAttributes[] | WorkoutSessionExercise[],
     equipment: any[],
     muscles: any[],
-    suggestedSetsByExerciseId?: Record<string, SuggestedWorkoutSet[]>
+    suggestedSetsByExerciseId?: Record<string, SuggestedWorkoutSet[]>,
+    trainingGoal?: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE",
+    lastPerformanceByExerciseId?: Record<string, LastExercisePerformance>
   ) => void;
   quitWorkout: () => void;
   completeWorkout: () => void;
@@ -71,13 +73,16 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
   totalExercises: 0,
   progressPercent: 0,
 
-  startWorkout: (exercises, _equipment, muscles, suggestedSetsByExerciseId) => {
+  startWorkout: (exercises, _equipment, muscles, suggestedSetsByExerciseId, trainingGoal, lastPerformanceByExerciseId) => {
     const sessionExercises: WorkoutSessionExercise[] = exercises.map((ex, idx) => {
+      const lastPerformance = lastPerformanceByExerciseId?.[ex.id] ?? null;
+
       // Check if exercise already has sets (from program)
       if ("sets" in ex && ex.sets && ex.sets.length > 0) {
         return {
           ...ex,
           order: idx,
+          lastPerformance,
         } as WorkoutSessionExercise;
       }
 
@@ -92,11 +97,14 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
           valuesSec: s.valuesSec ?? [],
           units: s.units ?? [],
           recommendationReason: s.recommendationReason,
+          rir: s.rir ?? null,
+          painLevel: s.painLevel ?? "NONE",
           completed: false,
         }));
         return {
           ...ex,
           order: idx,
+          lastPerformance,
           sets,
         } as WorkoutSessionExercise;
       }
@@ -105,6 +113,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       return {
         ...ex,
         order: idx,
+        lastPerformance,
         sets: [
           {
             id: `${ex.id}-set-1`,
@@ -114,6 +123,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
             valuesInt: [],
             valuesSec: [],
             units: [],
+            painLevel: "NONE",
             completed: false,
           },
         ],
@@ -125,6 +135,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       userId: "local",
       startedAt: new Date().toISOString(),
       exercises: sessionExercises,
+      trainingGoal: trainingGoal ?? "HYPERTROPHY",
       status: "active",
       muscles,
     };
@@ -252,6 +263,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       valuesInt: valuesIntToCopy,
       valuesSec: valuesSecToCopy,
       units: unitsToCopy,
+      painLevel: "NONE",
       completed: false,
     };
 
@@ -479,6 +491,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
           valuesInt: [],
           valuesSec: [],
           units: [],
+          painLevel: "NONE",
           completed: false,
         },
       ],

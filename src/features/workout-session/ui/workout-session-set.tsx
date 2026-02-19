@@ -22,6 +22,13 @@ const setTypeLabels: Record<string, string> = {
   BACKOFF: "Back-off",
 };
 
+const PAIN_LEVEL_OPTIONS = [
+  { value: "NONE", label: "None" },
+  { value: "MILD", label: "Mild" },
+  { value: "MODERATE", label: "Moderate" },
+  { value: "SEVERE", label: "Severe" },
+] as const;
+
 export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove }: WorkoutSetRowProps) {
   const t = useI18n();
   const types = set.types || [];
@@ -98,6 +105,25 @@ export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove 
 
   const handleEdit = () => {
     onChange(setIndex, { completed: false });
+  };
+
+  const handleRirChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    if (!rawValue) {
+      onChange(setIndex, { rir: null });
+      return;
+    }
+
+    const parsedValue = Number(rawValue);
+    if (!Number.isFinite(parsedValue)) {
+      return;
+    }
+
+    onChange(setIndex, { rir: Math.max(0, Math.min(10, Math.round(parsedValue))) });
+  };
+
+  const handlePainLevelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange(setIndex, { painLevel: e.target.value as "NONE" | "MILD" | "MODERATE" | "SEVERE" });
   };
 
   const renderInputForType = (type: WorkoutSetType, columnIndex: number) => {
@@ -251,6 +277,37 @@ export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove 
           </Button>
         </div>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-1">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">RIR (reps in reserve)</label>
+          <input
+            className="border border-black rounded px-2 py-2 text-sm text-center font-bold dark:bg-slate-800"
+            disabled={set.completed}
+            max={10}
+            min={0}
+            onChange={handleRirChange}
+            placeholder="e.g. 2"
+            type="number"
+            value={set.rir ?? ""}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Pain / discomfort</label>
+          <select
+            className="border border-black dark:border-slate-700 rounded px-2 py-2 text-sm font-semibold bg-white dark:bg-slate-800 dark:text-gray-200"
+            disabled={set.completed}
+            onChange={handlePainLevelChange}
+            value={set.painLevel ?? "NONE"}
+          >
+            {PAIN_LEVEL_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Finish & Edit buttons, full width on mobile */}
       <div className="flex gap-2 w-full md:w-auto mt-2">

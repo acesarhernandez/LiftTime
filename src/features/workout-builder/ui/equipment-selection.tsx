@@ -1,9 +1,9 @@
 "use client";
 import Image from "next/image";
-import { Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { ExerciseAttributeValueEnum } from "@prisma/client";
 
-import { useI18n, useCurrentLocale } from "locales/client";
+import { useI18n } from "locales/client";
 import { getEquipmentTranslation } from "@/shared/lib/workout-session/equipments";
 import { cn } from "@/shared/lib/utils";
 import { env } from "@/env";
@@ -15,6 +15,7 @@ import { EQUIPMENT_CONFIG } from "../model/equipment-config";
 
 interface EquipmentSelectionProps {
   onClearEquipment: VoidFunction;
+  onJumpToAllWorkouts: VoidFunction;
   onToggleEquipment: (equipment: ExerciseAttributeValueEnum) => void;
   selectedEquipment: ExerciseAttributeValueEnum[];
 }
@@ -117,9 +118,7 @@ function EquipmentCard({ equipment, isSelected, onToggle }: EquipmentCardProps) 
   );
 }
 
-export function EquipmentSelection({ onToggleEquipment, selectedEquipment }: EquipmentSelectionProps) {
-  const locale = useCurrentLocale();
-
+export function EquipmentSelection({ onJumpToAllWorkouts, onToggleEquipment, selectedEquipment }: EquipmentSelectionProps) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -146,6 +145,25 @@ export function EquipmentSelection({ onToggleEquipment, selectedEquipment }: Equ
           ezoicPlacementId={env.NEXT_PUBLIC_EZOIC_EQUIPMENT_SELECTION_PLACEMENT_ID}
         />
       )}
+
+      <div className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Quick Start</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Skip filters and jump straight to the full exercise list to build your session fast.
+            </p>
+          </div>
+          <button
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-500 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-500/60 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-950/70"
+            onClick={onJumpToAllWorkouts}
+            type="button"
+          >
+            Show all workouts
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       {/* {locale === "fr" ? (
         <NutripureAffiliateBanner />

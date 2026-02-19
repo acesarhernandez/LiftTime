@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import Image from "next/image";
-import { Play, Shuffle, Trash2, GripVertical, Loader2, BarChart3 } from "lucide-react";
+import { Play, Shuffle, Trash2, GripVertical, Loader2, BarChart3, Plus } from "lucide-react";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
 
@@ -25,9 +25,11 @@ interface ExerciseListItemProps {
   exercise: ExerciseWithAttributes;
   muscle: string;
   onShuffle: (exerciseId: string, muscle: string) => void;
-  onPick: (exerciseId: string) => void;
   onDelete: (exerciseId: string, muscle: string) => void;
   isShuffling?: boolean;
+  isCatalogMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
 export const ExerciseListItem = React.memo(function ExerciseListItem({
@@ -36,12 +38,15 @@ export const ExerciseListItem = React.memo(function ExerciseListItem({
   onShuffle,
   onDelete,
   isShuffling,
-}: Omit<ExerciseListItemProps, "onPick">) {
+  isCatalogMode = false,
+  isSelected = false,
+  onToggleSelection,
+}: ExerciseListItemProps) {
   const t = useI18n();
   const locale = useCurrentLocale();
   const playVideo = useBoolean();
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({ id: exercise.id });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({ id: exercise.id, disabled: isCatalogMode });
 
   const exerciseName = locale === "fr" ? exercise.name : exercise.nameEn;
   const muscleColor = MUSCLE_CONFIGS[muscle] || "bg-gray-500";
@@ -65,14 +70,16 @@ export const ExerciseListItem = React.memo(function ExerciseListItem({
         msUserSelect: "none",
       }}
     >
-      <div
-        className="cursor-grab active:cursor-grabbing touch-none select-none p-1 -m-1"
-        style={{ touchAction: "none" }}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-5 w-5 text-slate-400" />
-      </div>
+      {!isCatalogMode && (
+        <div
+          className="cursor-grab active:cursor-grabbing touch-none select-none p-1 -m-1"
+          style={{ touchAction: "none" }}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-5 w-5 text-slate-400" />
+        </div>
+      )}
 
       {exercise.fullVideoImageUrl && (
         <div
@@ -105,30 +112,56 @@ export const ExerciseListItem = React.memo(function ExerciseListItem({
         <span className="text-sm font-medium text-slate-900 dark:text-slate-100 md:truncate">{exerciseName}</span>
       </div>
 
-      <Button
-        className="p-2 sm:p-2 min-h-[44px] min-w-[44px] sm:min-h-min sm:min-w-min touch-manipulation"
-        disabled={isShuffling}
-        onClick={handleShuffle}
-        size="small"
-        variant="outline"
-      >
-        {isShuffling ? <Loader2 className="h-4 w-4 sm:h-3.5 sm:w-3.5 animate-spin" /> : <Shuffle className="h-4 w-4 sm:h-3.5 sm:w-3.5" />}
-        <span className="hidden sm:inline ml-1">{t("workout_builder.exercise.shuffle")}</span>
-      </Button>
+      {isCatalogMode ? (
+        <>
+          <button
+            className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            onClick={playVideo.setTrue}
+          >
+            <BarChart3 className="h-4 w-4" />
+          </button>
+          <Button
+            className="p-2 sm:p-2 min-h-[44px] min-w-[44px] sm:min-h-min sm:min-w-min touch-manipulation"
+            onClick={onToggleSelection}
+            size="small"
+            variant={isSelected ? "destructive" : "outline"}
+          >
+            {isSelected ? <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" /> : <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />}
+            <span className="hidden sm:inline ml-1">{isSelected ? "Remove" : "Add"}</span>
+          </Button>
+        </>
+      ) : (
+        <>
+          <Button
+            className="p-2 sm:p-2 min-h-[44px] min-w-[44px] sm:min-h-min sm:min-w-min touch-manipulation"
+            disabled={isShuffling}
+            onClick={handleShuffle}
+            size="small"
+            variant="outline"
+          >
+            {isShuffling ? (
+              <Loader2 className="h-4 w-4 sm:h-3.5 sm:w-3.5 animate-spin" />
+            ) : (
+              <Shuffle className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+            )}
+            <span className="hidden sm:inline ml-1">{t("workout_builder.exercise.shuffle")}</span>
+          </Button>
 
-      <button
-        className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-        onClick={playVideo.setTrue}
-      >
-        <BarChart3 className="h-4 w-4" />
-      </button>
+          <button
+            className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            onClick={playVideo.setTrue}
+          >
+            <BarChart3 className="h-4 w-4" />
+          </button>
 
-      <button
-        className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-        onClick={() => onDelete(exercise.id, muscle)}
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+          <button
+            className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+            onClick={() => onDelete(exercise.id, muscle)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </>
+      )}
 
       {exercise.fullVideoUrl && <ExerciseVideoModal exercise={exercise} onOpenChange={playVideo.toggle} open={playVideo.value} />}
     </div>

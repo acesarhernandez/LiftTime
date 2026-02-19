@@ -8,6 +8,8 @@ import { authenticatedActionClient } from "@/shared/api/safe-actions";
 import { getMuscleProgressByUser } from "@/features/workout-session/model/workout-session-read-model";
 
 const timeframeToWeeks: Record<StatisticsTimeframe, number> = {
+  [STATISTICS_TIMEFRAMES.ONE_WEEK]: 1,
+  [STATISTICS_TIMEFRAMES.TWO_WEEKS]: 2,
   [STATISTICS_TIMEFRAMES.FOUR_WEEKS]: 4,
   [STATISTICS_TIMEFRAMES.EIGHT_WEEKS]: 8,
   [STATISTICS_TIMEFRAMES.TWELVE_WEEKS]: 12,
@@ -16,6 +18,8 @@ const timeframeToWeeks: Record<StatisticsTimeframe, number> = {
 
 const getMuscleProgressSchema = z.object({
   timeframe: z.enum([
+    STATISTICS_TIMEFRAMES.ONE_WEEK,
+    STATISTICS_TIMEFRAMES.TWO_WEEKS,
     STATISTICS_TIMEFRAMES.FOUR_WEEKS,
     STATISTICS_TIMEFRAMES.EIGHT_WEEKS,
     STATISTICS_TIMEFRAMES.TWELVE_WEEKS,

@@ -13,6 +13,7 @@ export interface WorkoutSession {
   endedAt?: string;
   duration?: number;
   exercises: WorkoutSessionExercise[];
+  trainingGoal?: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
   currentExerciseIndex?: number;
   isActive?: boolean;
   serverId?: string; // If synced

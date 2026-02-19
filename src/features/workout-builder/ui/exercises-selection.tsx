@@ -22,6 +22,9 @@ interface ExercisesSelectionProps {
   onAdd: () => void;
   selectionMode: "equipment_muscles" | "equipment_only" | "individual";
   shufflingExerciseId?: string | null;
+  isCatalogMode?: boolean;
+  selectedExerciseIds?: Set<string>;
+  onToggleCatalogExercise?: (exercise: ExerciseWithAttributes, muscle: string, isSelected: boolean) => void;
 }
 
 export const ExercisesSelection = ({
@@ -34,6 +37,9 @@ export const ExercisesSelection = ({
   onAdd,
   selectionMode,
   shufflingExerciseId,
+  isCatalogMode = false,
+  selectedExerciseIds,
+  onToggleCatalogExercise,
 }: ExercisesSelectionProps) => {
   const t = useI18n();
   const [flatExercises, setFlatExercises] = useState<{ id: string; muscle: string; exercise: ExerciseWithAttributes }[]>([]);
@@ -67,6 +73,8 @@ export const ExercisesSelection = ({
       })),
     );
 
+    if (isCatalogMode) return flat;
+
     if (exercisesOrder.length === 0) return flat;
 
     const exerciseMap = new Map(flat.map((item) => [item.id, item]));
@@ -74,7 +82,7 @@ export const ExercisesSelection = ({
     const newExercises = flat.filter((item) => !exercisesOrder.includes(item.id));
 
     return [...orderedFlat, ...newExercises];
-  }, [exercisesByMuscle, exercisesOrder]);
+  }, [exercisesByMuscle, exercisesOrder, isCatalogMode]);
 
   useEffect(() => {
     setFlatExercises(flatExercisesComputed);
@@ -82,6 +90,7 @@ export const ExercisesSelection = ({
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      if (isCatalogMode) return;
       const { active, over } = event;
       if (active.id !== over?.id) {
         setFlatExercises((items) => {
@@ -93,7 +102,7 @@ export const ExercisesSelection = ({
         });
       }
     },
-    [setExercisesOrder],
+    [isCatalogMode, setExercisesOrder],
   );
 
   if (isLoading) {
@@ -118,24 +127,33 @@ export const ExercisesSelection = ({
                 {flatExercises.map((item) => (
                   <ExerciseListItem
                     exercise={item.exercise}
+                    isCatalogMode={isCatalogMode}
+                    isSelected={selectedExerciseIds ? selectedExerciseIds.has(item.id) : exercisesOrder.includes(item.id)}
                     isShuffling={shufflingExerciseId === item.exercise.id}
                     key={item.id}
                     muscle={item.muscle}
                     onDelete={onDelete}
                     onShuffle={onShuffle}
+                    onToggleSelection={() => {
+                      if (!onToggleCatalogExercise) return;
+                      const selected = selectedExerciseIds ? selectedExerciseIds.has(item.id) : exercisesOrder.includes(item.id);
+                      onToggleCatalogExercise(item.exercise, item.muscle, selected);
+                    }}
                   />
                 ))}
-                <div className="border-t border-slate-200 dark:border-slate-800">
-                  <button
-                    className="w-full flex items-center gap-3 py-4 px-4 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
-                    onClick={onAdd}
-                  >
-                    <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                      <Plus className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="font-medium">{t("commons.add")}</span>
-                  </button>
-                </div>
+                {!isCatalogMode && (
+                  <div className="border-t border-slate-200 dark:border-slate-800">
+                    <button
+                      className="w-full flex items-center gap-3 py-4 px-4 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
+                      onClick={onAdd}
+                    >
+                      <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+                        <Plus className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="font-medium">{t("commons.add")}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </SortableContext>
           </DndContext>
@@ -147,18 +165,22 @@ export const ExercisesSelection = ({
       ) : (
         <div className="text-center py-12 space-y-4">
           <p className="text-slate-600 dark:text-slate-400">
-            {selectionMode === "individual"
+            {isCatalogMode
+              ? "No exercises found in your database yet."
+              : selectionMode === "individual"
               ? "No exercise selected yet. Add exercises individually."
               : t("workout_builder.no_exercises_found")}
           </p>
-          <button
-            className="inline-flex items-center gap-2 rounded-lg border border-blue-500 px-4 py-2 font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
-            onClick={onAdd}
-            type="button"
-          >
-            <Plus className="h-4 w-4" />
-            Add exercise
-          </button>
+          {!isCatalogMode && (
+            <button
+              className="inline-flex items-center gap-2 rounded-lg border border-blue-500 px-4 py-2 font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+              onClick={onAdd}
+              type="button"
+            >
+              <Plus className="h-4 w-4" />
+              Add exercise
+            </button>
+          )}
         </div>
       )}
 

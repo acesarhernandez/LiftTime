@@ -6,10 +6,9 @@ import { AlertCircle, Dumbbell, Info } from "lucide-react";
 import { ExerciseAttributeValueEnum } from "@prisma/client";
 
 import { useI18n } from "locales/client";
-
+import { cn } from "@/shared/lib/utils";
 import { getAttributeValueLabel } from "@/shared/lib/attribute-value-translation";
 import { StatisticsTimeframe } from "@/shared/constants/statistics";
-import { cn } from "@/shared/lib/utils";
 import { useMuscleProgress } from "@/features/statistics/hooks/use-muscle-progress";
 
 type Goal = "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
@@ -181,11 +180,16 @@ export function MuscleProgressSection({ timeframe, isPremium }: { timeframe: Sta
           <div className="space-y-1">
             <p className="font-semibold">How this drives auto-populated recommendations</p>
             <p>
-              Effective sets are counted as primary muscle = 1.0 set and secondary muscle = 0.5 set. If weekly workload is high, the app
-              trims recommendation volume. If workload is low and performance is stable, it can add one working set.
+              Effective sets are weighted by muscle contribution: primary muscle = 1.0 set, secondary muscle = 0.5 set. Those totals are
+              compared to goal-specific weekly target ranges for each muscle group.
             </p>
             <p>
-              Baseline progression uses double progression with small load jumps, then rounds to practical plate/dumbbell increments.
+              This is the volume control signal. Muscles above target receive less recommended set volume; under-target muscles can receive
+              one additional working set when recent performance remains stable.
+            </p>
+            <p>
+              Load progression follows double progression with conservative jumps, then rounds to practical plate/dumbbell increments so the
+              recommendation stays both progressive and executable in real training.
             </p>
           </div>
         </div>
