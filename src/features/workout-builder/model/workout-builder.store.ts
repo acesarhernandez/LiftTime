@@ -1,15 +1,28 @@
 import { create } from "zustand";
 import { ExerciseAttributeValueEnum, WorkoutSessionExercise } from "@prisma/client";
 
-import { WorkoutBuilderStep } from "../types";
+import { WorkoutBuilderStep, WorkoutSelectionMode, WorkoutTrainingGoal } from "../types";
 import { shuffleExerciseAction } from "../actions/shuffle-exercise.action";
 import { pickExerciseAction } from "../actions/pick-exercise.action";
 import { getExercisesAction } from "../actions/get-exercises.action";
+
+const DEFAULT_EQUIPMENT_ONLY_MUSCLES: ExerciseAttributeValueEnum[] = [
+  ExerciseAttributeValueEnum.CHEST,
+  ExerciseAttributeValueEnum.BACK,
+  ExerciseAttributeValueEnum.SHOULDERS,
+  ExerciseAttributeValueEnum.BICEPS,
+  ExerciseAttributeValueEnum.TRICEPS,
+  ExerciseAttributeValueEnum.QUADRICEPS,
+  ExerciseAttributeValueEnum.HAMSTRINGS,
+  ExerciseAttributeValueEnum.GLUTES,
+];
 
 interface WorkoutBuilderState {
   currentStep: WorkoutBuilderStep;
   selectedEquipment: ExerciseAttributeValueEnum[];
   selectedMuscles: ExerciseAttributeValueEnum[];
+  selectionMode: WorkoutSelectionMode;
+  trainingGoal: WorkoutTrainingGoal;
 
   exercisesByMuscle: any[]; //TODO: type this
   isLoadingExercises: boolean;
@@ -21,6 +34,8 @@ interface WorkoutBuilderState {
   setStep: (step: WorkoutBuilderStep) => void;
   nextStep: () => void;
   prevStep: () => void;
+  setSelectionMode: (mode: WorkoutSelectionMode) => void;
+  setTrainingGoal: (goal: WorkoutTrainingGoal) => void;
   toggleEquipment: (equipment: ExerciseAttributeValueEnum) => void;
   clearEquipment: () => void;
   toggleMuscle: (muscle: ExerciseAttributeValueEnum) => void;
@@ -46,6 +61,8 @@ export const useWorkoutBuilderStore = create<WorkoutBuilderState>((set, get) => 
   currentStep: 1 as WorkoutBuilderStep,
   selectedEquipment: [],
   selectedMuscles: [],
+  selectionMode: "equipment_muscles",
+  trainingGoal: "HYPERTROPHY",
   exercisesByMuscle: [],
   isLoadingExercises: false,
   exercisesError: null,
@@ -55,6 +72,14 @@ export const useWorkoutBuilderStore = create<WorkoutBuilderState>((set, get) => 
   setStep: (step) => set({ currentStep: step }),
   nextStep: () => set((state) => ({ currentStep: Math.min(state.currentStep + 1, 3) as WorkoutBuilderStep })),
   prevStep: () => set((state) => ({ currentStep: Math.max(state.currentStep - 1, 1) as WorkoutBuilderStep })),
+  setSelectionMode: (mode) =>
+    set((state) => ({
+      selectionMode: mode,
+      selectedMuscles: mode === "equipment_muscles" ? state.selectedMuscles : [],
+      exercisesByMuscle: [],
+      exercisesOrder: [],
+    })),
+  setTrainingGoal: (goal) => set({ trainingGoal: goal }),
 
   toggleEquipment: (equipment) =>
     set((state) => ({
@@ -75,11 +100,19 @@ export const useWorkoutBuilderStore = create<WorkoutBuilderState>((set, get) => 
   fetchExercises: async () => {
     set({ isLoadingExercises: true, exercisesError: null });
     try {
-      const { selectedEquipment, selectedMuscles } = get();
+      const { selectedEquipment, selectedMuscles, selectionMode } = get();
+
+      if (selectionMode === "individual") {
+        set({ exercisesByMuscle: [], isLoadingExercises: false });
+        return;
+      }
+
+      const targetMuscles = selectionMode === "equipment_muscles" ? selectedMuscles : DEFAULT_EQUIPMENT_ONLY_MUSCLES;
+
       const result = await getExercisesAction({
         equipment: selectedEquipment,
-        muscles: selectedMuscles,
-        limit: 3,
+        muscles: targetMuscles,
+        limit: selectionMode === "equipment_only" ? 2 : 3,
       });
       if (result?.serverError) {
         throw new Error(result.serverError);
@@ -177,6 +210,7 @@ export const useWorkoutBuilderStore = create<WorkoutBuilderState>((set, get) => 
     set({
       selectedEquipment: equipment,
       selectedMuscles: muscles,
+      selectionMode: "equipment_muscles",
       exercisesByMuscle,
       exercisesOrder,
       currentStep: 3,

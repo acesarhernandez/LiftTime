@@ -20,6 +20,7 @@ interface ExercisesSelectionProps {
   onPick: (exerciseId: string) => void;
   onDelete: (exerciseId: string, muscle: string) => void;
   onAdd: () => void;
+  selectionMode: "equipment_muscles" | "equipment_only" | "individual";
   shufflingExerciseId?: string | null;
 }
 
@@ -31,6 +32,7 @@ export const ExercisesSelection = ({
   onPick: _todo,
   onDelete,
   onAdd,
+  selectionMode,
   shufflingExerciseId,
 }: ExercisesSelectionProps) => {
   const t = useI18n();
@@ -143,8 +145,20 @@ export const ExercisesSelection = ({
           <p className="text-red-600 dark:text-red-400">{t("workout_builder.error.loading_exercises")}</p>
         </div>
       ) : (
-        <div className="text-center py-20">
-          <p className="text-slate-600 dark:text-slate-400">{t("workout_builder.no_exercises_found")}</p>
+        <div className="text-center py-12 space-y-4">
+          <p className="text-slate-600 dark:text-slate-400">
+            {selectionMode === "individual"
+              ? "No exercise selected yet. Add exercises individually."
+              : t("workout_builder.no_exercises_found")}
+          </p>
+          <button
+            className="inline-flex items-center gap-2 rounded-lg border border-blue-500 px-4 py-2 font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+            onClick={onAdd}
+            type="button"
+          >
+            <Plus className="h-4 w-4" />
+            Add exercise
+          </button>
         </div>
       )}
 

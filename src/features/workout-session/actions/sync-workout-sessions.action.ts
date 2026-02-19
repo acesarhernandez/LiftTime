@@ -1,26 +1,57 @@
 "use server";
 
 import { z } from "zod";
-import { ExerciseAttributeValueEnum } from "@prisma/client";
+import { ExerciseAttributeValueEnum, WorkoutSetType, WeightUnit } from "@prisma/client";
 
 import { workoutSessionStatuses } from "@/shared/lib/workout-session/types/workout-session";
 import { prisma } from "@/shared/lib/prisma";
-import { ALL_WORKOUT_SET_TYPES, WORKOUT_SET_UNITS_TUPLE } from "@/shared/constants/workout-set-types";
-import { ERROR_MESSAGES } from "@/shared/constants/errors";
 import { actionClient } from "@/shared/api/safe-actions";
+import { syncWorkoutSessionWithPrisma } from "@/features/workout-session/lib/sync-workout-session";
 
-const workoutSetSchema = z.object({
+/**
+ * Accept legacy set shape from the client store:
+ *   { types: ["REPS","WEIGHT"], valuesInt: [...], units: [...] }
+ */
+const legacyWorkoutSetSchema = z.object({
   id: z.string(),
   setIndex: z.number(),
-  types: z.array(z.enum(ALL_WORKOUT_SET_TYPES)),
+  type: z.nativeEnum(WorkoutSetType).optional(),
+  types: z.array(z.string()),
   valuesInt: z.array(z.number()).optional(),
   valuesSec: z.array(z.number()).optional(),
-  units: z.array(z.enum(WORKOUT_SET_UNITS_TUPLE)).optional(),
+  units: z.array(z.string()).optional(),
   completed: z.boolean(),
 });
 
-const workoutSessionExerciseSchema = z.object({
+/**
+ * Accept new normalized set shape:
+ *   { type, reps, weight, weightUnit, durationSec }
+ */
+const newWorkoutSetSchema = z.object({
   id: z.string(),
+  setIndex: z.number(),
+  type: z.nativeEnum(WorkoutSetType).optional(),
+  reps: z.number().int().optional().nullable(),
+  weight: z.union([z.number(), z.string()]).optional().nullable(),
+  weightUnit: z.nativeEnum(WeightUnit).optional().nullable(),
+  durationSec: z.number().int().optional().nullable(),
+  completed: z.boolean(),
+});
+
+const workoutSetSchema = z.union([legacyWorkoutSetSchema, newWorkoutSetSchema]);
+
+/**
+ * IMPORTANT:
+ * The client currently sends exercises where `id` is actually the Exercise.id.
+ * Some future version might send `exerciseId` separately.
+ *
+ * So we accept BOTH:
+ *   - id (always)
+ *   - exerciseId (optional)
+ */
+const workoutSessionExerciseSchema = z.object({
+  id: z.string(), // client sends Exercise.id here today
+  exerciseId: z.string().optional(), // allow future / alternate shape
   order: z.number(),
   sets: z.array(workoutSetSchema),
 });
@@ -43,81 +74,19 @@ export const syncWorkoutSessionAction = actionClient.schema(syncWorkoutSessionSc
   try {
     const { session } = parsedInput;
 
-    // Check if user exists
-    const userExists = await prisma.user.findUnique({
-      where: { id: session.userId },
-    });
+    const result = await syncWorkoutSessionWithPrisma(prisma, session);
 
-    if (!userExists) {
-      console.error(`User with ID ${session.userId} does not exist`);
-      return { serverError: ERROR_MESSAGES.USER_NOT_FOUND };
+    if (result.serverError) {
+      console.error("Failed to sync workout session:", result.serverError);
+      return { serverError: result.serverError };
     }
 
-    // Check if all exercises exist
-    const exerciseIds = session.exercises.map((e) => e.id);
-    const existingExercises = await prisma.exercise.findMany({
-      where: { id: { in: exerciseIds } },
-      select: { id: true },
-    });
-
-    const existingExerciseIds = new Set(existingExercises.map((e) => e.id));
-    const missingExercises = exerciseIds.filter((id) => !existingExerciseIds.has(id));
-
-    if (missingExercises.length > 0) {
-      console.error("Missing exercises:", missingExercises);
-      return { serverError: `Exercises not found: ${missingExercises.join(", ")}` };
+    if (!result.data) {
+      return { serverError: "Failed to sync workout session" };
     }
 
-    const { status: _s, ...sessionData } = session;
-
-    const result = await prisma.workoutSession.upsert({
-      where: { id: session.id },
-      create: {
-        ...sessionData,
-        muscles: session.muscles,
-        rating: session.rating,
-        ratingComment: session.ratingComment,
-        exercises: {
-          create: session.exercises.map((exercise) => ({
-            order: exercise.order,
-            exercise: { connect: { id: exercise.id } },
-            sets: {
-              create: exercise.sets.map((set) => ({
-                setIndex: set.setIndex,
-                types: set.types,
-                valuesInt: set.valuesInt,
-                valuesSec: set.valuesSec,
-                units: set.units,
-                completed: set.completed,
-                type: set.types && set.types.length > 0 ? set.types[0] : "NA",
-              })),
-            },
-          })),
-        },
-      },
-      update: {
-        muscles: session.muscles,
-        rating: session.rating,
-        ratingComment: session.ratingComment,
-        exercises: {
-          deleteMany: {},
-          create: session.exercises.map((exercise) => ({
-            order: exercise.order,
-            exercise: { connect: { id: exercise.id } },
-            sets: {
-              create: exercise.sets.map((set) => ({
-                ...set,
-                type: set.types && set.types.length > 0 ? set.types[0] : "NA",
-              })),
-            },
-          })),
-        },
-      },
-    });
-
-    console.log("✅ Workout session synced successfully:", result.id);
-
-    return { data: result };
+    console.log("✅ Workout session synced successfully:", result.data.id);
+    return result;
   } catch (error) {
     console.error("❌ Error syncing workout session:", error);
     return { serverError: "Failed to sync workout session" };

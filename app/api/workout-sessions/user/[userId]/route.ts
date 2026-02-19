@@ -3,6 +3,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { getMobileCompatibleSession } from "@/shared/api/mobile-auth";
 import { getWorkoutSessionsAction } from "@/features/workout-session/actions/get-workout-sessions.action";
 
+function toISOStringSafe(value: Date | string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return String(value);
+  }
+
+  return parsedDate.toISOString();
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
@@ -19,8 +36,8 @@ export async function GET(request: NextRequest) {
     const formattedSessions = result?.data?.sessions?.map((session) => ({
       id: session.id,
       userId: session.userId,
-      startedAt: session.startedAt.toISOString(),
-      endedAt: session.endedAt?.toISOString() || null,
+      startedAt: toISOStringSafe(session.startedAt),
+      endedAt: toISOStringSafe(session.endedAt),
       duration: session.duration || null,
       muscles: session.muscles || [],
       rating: session.rating || null,

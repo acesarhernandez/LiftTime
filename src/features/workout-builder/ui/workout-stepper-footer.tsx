@@ -8,6 +8,7 @@ export function WorkoutBuilderFooter({
   currentStep,
   totalSteps,
   canContinue,
+  isStartingWorkout = false,
   onPrevious,
   onNext,
   onStartWorkout,
@@ -15,6 +16,7 @@ export function WorkoutBuilderFooter({
   currentStep: number;
   totalSteps: number;
   canContinue: boolean;
+  isStartingWorkout?: boolean;
   onPrevious: VoidFunction;
   onNext: VoidFunction;
   onStartWorkout?: VoidFunction;
@@ -42,13 +44,15 @@ export function WorkoutBuilderFooter({
           {/* Next/Start Workout button */}
           <Button
             className="flex-1 rounded-full bg-blue-600 hover:bg-blue-700 min-h-12 dark:bg-blue-500 dark:hover:bg-blue-600"
-            disabled={!canContinue}
+            disabled={!canContinue || isStartingWorkout}
             onClick={isFinalStep ? () => onStartWorkout?.() : onNext}
             size="default"
             variant="default"
           >
             <div className="flex items-center justify-center gap-2">
-              <span className="font-semibold">{t("workout_builder.navigation.continue")}</span>
+              <span className="font-semibold">
+                {isStartingWorkout ? t("workout_builder.navigation.starting") : t("workout_builder.navigation.continue")}
+              </span>
               <ArrowRight className="h-4 w-4" />
             </div>
           </Button>

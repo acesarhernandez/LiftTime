@@ -713,6 +713,7 @@ export default {
       previous: "上一步",
       continue: "继续",
       complete: "完成",
+      starting: "启动中…",
     },
     stats: {
       "muscle_selected#zero": "已选择 0 块肌肉",

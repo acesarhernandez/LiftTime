@@ -324,26 +324,29 @@ model WorkoutSet {
   id                       String                 @id @default(cuid())
   workoutSessionExerciseId String
   setIndex                 Int
-  type                     WorkoutSetType
-  types                    WorkoutSetType[]       @default([])
-  valuesInt                Int[]                  @default([])
-  valuesSec                Int[]                  @default([])
-  units                    WorkoutSetUnit[]       @default([])
+  type                     WorkoutSetType         @default(NORMAL)
   completed                Boolean                @default(false)
+
+  reps                     Int?
+  weight                   Decimal?               @db.Decimal(10,2)
+  weightUnit               WeightUnit?
+  durationSec              Int?
+
   workoutSessionExercise   WorkoutSessionExercise @relation(fields: [workoutSessionExerciseId], references: [id], onDelete: Cascade)
 
   @@map("workout_sets")
 }
 
 enum WorkoutSetType {
-  TIME
-  WEIGHT
-  REPS
-  BODYWEIGHT
-  NA
+  NORMAL
+  WARMUP
+  DROP
+  FAILURE
+  AMRAP
+  BACKOFF
 }
 
-enum WorkoutSetUnit {
+enum WeightUnit {
   kg
   lbs
 }
@@ -673,7 +676,7 @@ model ProgramSuggestedSet {
   types                    WorkoutSetType[] @default([])
   valuesInt                Int[]            @default([])
   valuesSec                Int[]            @default([])
-  units                    WorkoutSetUnit[] @default([])
+  units                    WeightUnit[] @default([])
 
   programSessionExercise ProgramSessionExercise @relation(fields: [programSessionExerciseId], references: [id], onDelete: Cascade)
 

@@ -11,10 +11,10 @@ CREATE TYPE "ExerciseAttributeNameEnum" AS ENUM ('TYPE', 'PRIMARY_MUSCLE', 'SECO
 CREATE TYPE "ExerciseAttributeValueEnum" AS ENUM ('BODYWEIGHT', 'STRENGTH', 'POWERLIFTING', 'CALISTHENIC', 'PLYOMETRICS', 'STRETCHING', 'STRONGMAN', 'CARDIO', 'STABILIZATION', 'POWER', 'RESISTANCE', 'CROSSFIT', 'WEIGHTLIFTING', 'BICEPS', 'SHOULDERS', 'CHEST', 'BACK', 'GLUTES', 'TRICEPS', 'HAMSTRINGS', 'QUADRICEPS', 'FOREARMS', 'CALVES', 'TRAPS', 'ABDOMINALS', 'NECK', 'LATS', 'ADDUCTORS', 'ABDUCTORS', 'OBLIQUES', 'GROIN', 'FULL_BODY', 'ROTATOR_CUFF', 'HIP_FLEXOR', 'ACHILLES_TENDON', 'FINGERS', 'DUMBBELL', 'KETTLEBELLS', 'BARBELL', 'SMITH_MACHINE', 'BODY_ONLY', 'OTHER', 'BANDS', 'EZ_BAR', 'MACHINE', 'DESK', 'PULLUP_BAR', 'NONE', 'CABLE', 'MEDICINE_BALL', 'SWISS_BALL', 'FOAM_ROLL', 'WEIGHT_PLATE', 'TRX', 'BOX', 'ROPES', 'SPIN_BIKE', 'STEP', 'BOSU', 'TYRE', 'SANDBAG', 'POLE', 'BENCH', 'WALL', 'BAR', 'RACK', 'CAR', 'SLED', 'CHAIN', 'SKIERG', 'ROPE', 'NA', 'ISOLATION', 'COMPOUND');
 
 -- CreateEnum
-CREATE TYPE "WorkoutSetType" AS ENUM ('TIME', 'WEIGHT', 'REPS', 'BODYWEIGHT', 'NA');
+CREATE TYPE "WorkoutSetType" AS ENUM ('NORMAL', 'WARMUP', 'DROP', 'FAILURE', 'AMRAP', 'BACKOFF');
 
 -- CreateEnum
-CREATE TYPE "WorkoutSetUnit" AS ENUM ('kg', 'lbs');
+CREATE TYPE "WeightUnit" AS ENUM ('kg', 'lbs');
 
 -- CreateEnum
 CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'TRIAL', 'CANCELLED', 'EXPIRED', 'PAUSED');
@@ -202,12 +202,12 @@ CREATE TABLE "workout_sets" (
     "id" TEXT NOT NULL,
     "workoutSessionExerciseId" TEXT NOT NULL,
     "setIndex" INTEGER NOT NULL,
-    "type" "WorkoutSetType" NOT NULL,
-    "types" "WorkoutSetType"[] DEFAULT ARRAY[]::"WorkoutSetType"[],
-    "valuesInt" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
-    "valuesSec" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
-    "units" "WorkoutSetUnit"[] DEFAULT ARRAY[]::"WorkoutSetUnit"[],
+    "type" "WorkoutSetType" NOT NULL DEFAULT 'NORMAL',
     "completed" BOOLEAN NOT NULL DEFAULT false,
+    "reps" INTEGER,
+    "weight" DECIMAL(10,2),
+    "weightUnit" "WeightUnit",
+    "durationSec" INTEGER,
 
     CONSTRAINT "workout_sets_pkey" PRIMARY KEY ("id")
 );
@@ -421,7 +421,7 @@ CREATE TABLE "program_suggested_sets" (
     "types" "WorkoutSetType"[] DEFAULT ARRAY[]::"WorkoutSetType"[],
     "valuesInt" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
     "valuesSec" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
-    "units" "WorkoutSetUnit"[] DEFAULT ARRAY[]::"WorkoutSetUnit"[],
+    "units" "WeightUnit"[] DEFAULT ARRAY[]::"WeightUnit"[],
 
     CONSTRAINT "program_suggested_sets_pkey" PRIMARY KEY ("id")
 );
@@ -641,4 +641,3 @@ ALTER TABLE "user_session_progress" ADD CONSTRAINT "user_session_progress_sessio
 
 -- AddForeignKey
 ALTER TABLE "user_session_progress" ADD CONSTRAINT "user_session_progress_workoutSessionId_fkey" FOREIGN KEY ("workoutSessionId") REFERENCES "workout_sessions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-

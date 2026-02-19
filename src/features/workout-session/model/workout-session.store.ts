@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { workoutSessionLocal } from "@/shared/lib/workout-session/workout-session.local";
 import { WorkoutSession } from "@/shared/lib/workout-session/types/workout-session";
 import { convertWeight, type WeightUnit } from "@/shared/lib/weight-conversion";
-import { WorkoutSessionExercise, WorkoutSet, WorkoutSetType, WorkoutSetUnit } from "@/features/workout-session/types/workout-set";
+import { SuggestedWorkoutSet, WorkoutSessionExercise, WorkoutSet, WorkoutSetType, WorkoutSetUnit } from "@/features/workout-session/types/workout-set";
 import { useWorkoutBuilderStore } from "@/features/workout-builder/model/workout-builder.store";
 import { ExerciseWithAttributes } from "@/entities/exercise/types/exercise.types";
 
@@ -32,7 +32,12 @@ interface WorkoutSessionState {
   progressPercent: number;
 
   // Actions
-  startWorkout: (exercises: ExerciseWithAttributes[] | WorkoutSessionExercise[], equipment: any[], muscles: any[]) => void;
+  startWorkout: (
+    exercises: ExerciseWithAttributes[] | WorkoutSessionExercise[],
+    equipment: any[],
+    muscles: any[],
+    suggestedSetsByExerciseId?: Record<string, SuggestedWorkoutSet[]>
+  ) => void;
   quitWorkout: () => void;
   completeWorkout: () => void;
   toggleTimer: () => void;
@@ -66,7 +71,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
   totalExercises: 0,
   progressPercent: 0,
 
-  startWorkout: (exercises, _equipment, muscles) => {
+  startWorkout: (exercises, _equipment, muscles, suggestedSetsByExerciseId) => {
     const sessionExercises: WorkoutSessionExercise[] = exercises.map((ex, idx) => {
       // Check if exercise already has sets (from program)
       if ("sets" in ex && ex.sets && ex.sets.length > 0) {
@@ -76,7 +81,27 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
         } as WorkoutSessionExercise;
       }
 
-      // Default sets for custom workouts
+      const suggestedSets = suggestedSetsByExerciseId?.[ex.id];
+      if (suggestedSets?.length) {
+        const sets: WorkoutSet[] = suggestedSets.map((s, i) => ({
+          id: `${ex.id}-set-${i + 1}`,
+          setIndex: s.setIndex,
+          type: s.type ?? "NORMAL",
+          types: s.types,
+          valuesInt: s.valuesInt ?? [],
+          valuesSec: s.valuesSec ?? [],
+          units: s.units ?? [],
+          recommendationReason: s.recommendationReason,
+          completed: false,
+        }));
+        return {
+          ...ex,
+          order: idx,
+          sets,
+        } as WorkoutSessionExercise;
+      }
+
+      // Default sets for custom workouts (no history / not logged in)
       return {
         ...ex,
         order: idx,
@@ -84,6 +109,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
           {
             id: `${ex.id}-set-1`,
             setIndex: 0,
+            type: "NORMAL",
             types: ["REPS", "WEIGHT"],
             valuesInt: [],
             valuesSec: [],
@@ -197,26 +223,34 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     const currentExercise = session.exercises[exIdx];
     const sets = currentExercise.sets;
 
-    let typesToCopy: WorkoutSetType[] = ["REPS"];
+    const latestWorkingTemplate =
+      [...sets].reverse().find((set) => (set.type ?? "NORMAL") !== "WARMUP") ?? sets[sets.length - 1];
+
+    let typesToCopy: WorkoutSetType[] = ["REPS", "WEIGHT"];
     let unitsToCopy: WorkoutSetUnit[] = [];
+    let valuesIntToCopy: number[] = [];
+    let valuesSecToCopy: number[] = [];
 
-    if (sets.length > 0) {
-      const lastSet = sets[sets.length - 1];
-
-      if (lastSet.types && lastSet.types.length > 0) {
-        typesToCopy = [...lastSet.types];
-        if (lastSet.units && lastSet.units.length > 0) {
-          unitsToCopy = [...lastSet.units];
-        }
+    if (latestWorkingTemplate) {
+      if (latestWorkingTemplate.types && latestWorkingTemplate.types.length > 0) {
+        typesToCopy = [...latestWorkingTemplate.types];
       }
+
+      if (latestWorkingTemplate.units && latestWorkingTemplate.units.length > 0) {
+        unitsToCopy = [...latestWorkingTemplate.units];
+      }
+
+      valuesIntToCopy = Array.isArray(latestWorkingTemplate.valuesInt) ? [...latestWorkingTemplate.valuesInt] : [];
+      valuesSecToCopy = Array.isArray(latestWorkingTemplate.valuesSec) ? [...latestWorkingTemplate.valuesSec] : [];
     }
 
     const newSet: WorkoutSet = {
       id: `${currentExercise.id}-set-${sets.length + 1}`,
       setIndex: sets.length,
+      type: (latestWorkingTemplate?.type ?? "NORMAL") === "WARMUP" ? "NORMAL" : latestWorkingTemplate?.type ?? "NORMAL",
       types: typesToCopy,
-      valuesInt: [],
-      valuesSec: [],
+      valuesInt: valuesIntToCopy,
+      valuesSec: valuesSecToCopy,
       units: unitsToCopy,
       completed: false,
     };
@@ -440,6 +474,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
         {
           id: `${exercise.id}-set-1`,
           setIndex: 0,
+          type: "NORMAL",
           types: ["REPS", "WEIGHT"],
           valuesInt: [],
           valuesSec: [],

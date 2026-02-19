@@ -14,12 +14,13 @@ import { StatisticsTimeframe } from "@/shared/constants/statistics";
 import { ExerciseVideoModal } from "@/features/workout-builder/ui/exercise-video-modal";
 import { WorkoutBuilderExerciseWithAttributes } from "@/features/workout-builder/types";
 import { EQUIPMENT_CONFIG } from "@/features/workout-builder/model/equipment-config";
+import { ExerciseCharts } from "@/features/statistics/components/ExerciseStatisticsTab";
+import { MuscleProgressSection } from "@/features/statistics/components/MuscleProgressSection";
+import { OneRepMaxChart } from "@/features/statistics/components/OneRepMaxChart";
+import { StatisticsPreviewOverlay } from "@/features/statistics/components/StatisticsPreviewOverlay";
+import { TimeframeSelector } from "@/features/statistics/components/TimeframeSelector";
 import { WeightProgressionChart } from "@/features/statistics/components/WeightProgressionChart";
 import { VolumeChart } from "@/features/statistics/components/VolumeChart";
-import { TimeframeSelector } from "@/features/statistics/components/TimeframeSelector";
-import { StatisticsPreviewOverlay } from "@/features/statistics/components/StatisticsPreviewOverlay";
-import { OneRepMaxChart } from "@/features/statistics/components/OneRepMaxChart";
-import { ExerciseCharts } from "@/features/statistics/components/ExerciseStatisticsTab";
 import { useUserSubscription } from "@/features/ads/hooks/useUserSubscription";
 import { ExerciseWithAttributes } from "@/entities/exercise/types/exercise.types";
 import { getExerciseAttributesValueOf } from "@/entities/exercise/shared/muscles";
@@ -361,6 +362,8 @@ export const ExercisesBrowser = () => {
 
           {/* Statistics Section */}
           <div className="space-y-4">
+            <MuscleProgressSection isPremium={isPremium} timeframe={selectedTimeframe} />
+
             {/* Time period selector */}
             <div className="flex items-center justify-between bg-base-100 rounded-lg p-4">
               <span className="hidden sm:block font-semibold">{t("statistics.title")}</span>

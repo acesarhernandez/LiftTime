@@ -39,6 +39,7 @@ export function WorkoutSessionSets({
   const [videoModal, setVideoModal] = useState<{ open: boolean; exerciseId?: string }>({ open: false });
   const { syncSessions } = useSyncWorkoutSessions();
   const prevExerciseIndexRef = useRef<number>(currentExerciseIndex);
+  const syncDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { syncFavoriteExercises } = useSyncFavoriteExercises();
 
   // auto-scroll to current exercise when index changes (but not when adding sets)
@@ -69,6 +70,14 @@ export function WorkoutSessionSets({
       prevExerciseIndexRef.current = currentExerciseIndex;
     }
   }, [currentExerciseIndex, session]);
+
+  useEffect(() => {
+    return () => {
+      if (syncDebounceRef.current) {
+        clearTimeout(syncDebounceRef.current);
+      }
+    };
+  }, []);
 
   if (showCongrats) {
     return (
@@ -116,12 +125,26 @@ export function WorkoutSessionSets({
     return "bg-slate-200 border-slate-200";
   };
 
-  const handleFinishSession = () => {
+  const handleFinishSession = async () => {
     completeWorkout();
-    syncFavoriteExercises();
-    syncSessions();
+    await Promise.all([syncFavoriteExercises(), syncSessions()]);
     onCongrats();
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+  };
+
+  const handleFinishSet = (exerciseIndex: number, setIndex: number) => {
+    finishSet(exerciseIndex, setIndex);
+    void syncSessions();
+  };
+
+  const scheduleSync = () => {
+    if (syncDebounceRef.current) {
+      clearTimeout(syncDebounceRef.current);
+    }
+
+    syncDebounceRef.current = setTimeout(() => {
+      void syncSessions();
+    }, 500);
   };
 
   return (
@@ -212,12 +235,21 @@ export function WorkoutSessionSets({
                   <div className="flex justify-start items-center gap-2">
                     <FavoriteExerciseButton exerciseId={ex.id} />
                   </div>
+                  {ex.sets.some((set) => set.recommendationReason) && (
+                    <div className="mt-3 mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-100">
+                      <span className="font-semibold">Recommendation notes:</span>{" "}
+                      {ex.sets.find((set) => set.recommendationReason)?.recommendationReason}
+                    </div>
+                  )}
                   <div className="space-y-10 mb-8">
                     {ex.sets.map((set, setIdx) => (
                       <WorkoutSessionSet
                         key={set.id}
-                        onChange={(sIdx: number, data: Partial<typeof set>) => updateSet(idx, sIdx, data)}
-                        onFinish={() => finishSet(idx, setIdx)}
+                        onChange={(sIdx: number, data: Partial<typeof set>) => {
+                          updateSet(idx, sIdx, data);
+                          scheduleSync();
+                        }}
+                        onFinish={() => handleFinishSet(idx, setIdx)}
                         onRemove={() => removeSet(idx, setIdx)}
                         set={set}
                         setIndex={setIdx}

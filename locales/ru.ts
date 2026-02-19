@@ -1582,6 +1582,7 @@ export default {
       previous: "Назад",
       continue: "Продолжить",
       complete: "Завершить",
+      starting: "Запуск…",
     },
     stats: {
       "muscle_selected#zero": "0 мышц выбрано",

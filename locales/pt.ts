@@ -1590,6 +1590,7 @@ export default {
       previous: "Anterior",
       continue: "Continuar",
       complete: "Concluir",
+      starting: "Iniciando…",
     },
     stats: {
       "muscle_selected#zero": "0 músculos selecionados",

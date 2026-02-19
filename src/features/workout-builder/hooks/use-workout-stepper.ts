@@ -7,6 +7,8 @@ export function useWorkoutStepper() {
     currentStep,
     selectedEquipment,
     selectedMuscles,
+    selectionMode,
+    trainingGoal,
     exercisesByMuscle,
     isLoadingExercises,
     exercisesError,
@@ -15,6 +17,8 @@ export function useWorkoutStepper() {
     setStep,
     nextStep,
     prevStep,
+    setSelectionMode,
+    setTrainingGoal,
     toggleEquipment,
     clearEquipment,
     toggleMuscle,
@@ -28,13 +32,15 @@ export function useWorkoutStepper() {
   } = useWorkoutBuilderStore();
 
   const canProceedToStep2 = selectedEquipment.length > 0;
-  const canProceedToStep3 = selectedMuscles.length > 0;
+  const canProceedToStep3 = selectionMode === "equipment_muscles" ? selectedMuscles.length > 0 : true;
 
   return {
     // state
     currentStep,
     selectedEquipment,
     selectedMuscles,
+    selectionMode,
+    trainingGoal,
 
     // exercises
     exercisesByMuscle,
@@ -45,6 +51,8 @@ export function useWorkoutStepper() {
     goToStep: setStep,
     nextStep,
     prevStep,
+    setSelectionMode,
+    setTrainingGoal,
 
     // equipment
     toggleEquipment,

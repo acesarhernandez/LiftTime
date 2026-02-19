@@ -1612,6 +1612,7 @@ export default {
       previous: "Précédent",
       continue: "Continuer",
       complete: "Terminer",
+      starting: "Démarrage…",
     },
     stats: {
       "muscle_selected#zero": "0 muscle sélectionné",

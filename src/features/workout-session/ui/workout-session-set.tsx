@@ -2,7 +2,7 @@ import { Plus, Minus, Trash2 } from "lucide-react";
 
 import { useI18n } from "locales/client";
 import { AVAILABLE_WORKOUT_SET_TYPES, MAX_WORKOUT_SET_COLUMNS } from "@/shared/constants/workout-set-types";
-import { WorkoutSet, WorkoutSetType, WorkoutSetUnit } from "@/features/workout-session/types/workout-set";
+import { WorkoutSet, WorkoutSetType } from "@/features/workout-session/types/workout-set";
 import { getWorkoutSetTypeLabels } from "@/features/workout-session/lib/workout-set-labels";
 import { Button } from "@/components/ui/button";
 
@@ -14,33 +14,62 @@ interface WorkoutSetRowProps {
   onRemove: () => void;
 }
 
+const setTypeLabels: Record<string, string> = {
+  WARMUP: "Warm-up",
+  DROP: "Drop set",
+  FAILURE: "To failure",
+  AMRAP: "AMRAP",
+  BACKOFF: "Back-off",
+};
+
 export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove }: WorkoutSetRowProps) {
   const t = useI18n();
   const types = set.types || [];
   const typeLabels = getWorkoutSetTypeLabels(t);
+  const setTypeLabel = set.type && set.type !== "NORMAL" ? setTypeLabels[set.type] : null;
 
   const handleTypeChange = (columnIndex: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newTypes = [...types];
     newTypes[columnIndex] = e.target.value as WorkoutSetType;
-    onChange(setIndex, { types: newTypes });
+    const payload: Partial<WorkoutSet> = { types: newTypes };
+
+    if (newTypes[columnIndex] === "WEIGHT") {
+      const newUnits = Array.isArray(set.units) ? [...set.units] : [];
+      newUnits[columnIndex] = "lbs";
+      payload.units = newUnits;
+    }
+
+    onChange(setIndex, payload);
   };
 
   const handleValueIntChange = (columnIndex: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValuesInt = Array.isArray(set.valuesInt) ? [...set.valuesInt] : [];
-    newValuesInt[columnIndex] = e.target.value ? parseInt(e.target.value, 10) : 0;
-    onChange(setIndex, { valuesInt: newValuesInt });
+    const currentType = types[columnIndex];
+    const value = e.target.value;
+
+    if (!value) {
+      newValuesInt[columnIndex] = 0;
+      onChange(setIndex, { valuesInt: newValuesInt });
+      return;
+    }
+
+    const parsedValue = currentType === "WEIGHT" ? parseFloat(value) : parseInt(value, 10);
+    newValuesInt[columnIndex] = Number.isFinite(parsedValue) ? parsedValue : 0;
+
+    const payload: Partial<WorkoutSet> = { valuesInt: newValuesInt };
+    if (currentType === "WEIGHT") {
+      const newUnits = Array.isArray(set.units) ? [...set.units] : [];
+      newUnits[columnIndex] = "lbs";
+      payload.units = newUnits;
+    }
+
+    onChange(setIndex, payload);
   };
 
   const handleValueSecChange = (columnIndex: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValuesSec = Array.isArray(set.valuesSec) ? [...set.valuesSec] : [];
     newValuesSec[columnIndex] = e.target.value ? parseInt(e.target.value, 10) : 0;
     onChange(setIndex, { valuesSec: newValuesSec });
-  };
-
-  const handleUnitChange = (columnIndex: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newUnits = Array.isArray(set.units) ? [...set.units] : [];
-    newUnits[columnIndex] = e.target.value as WorkoutSetUnit;
-    onChange(setIndex, { units: newUnits });
   };
 
   const addColumn = () => {
@@ -74,7 +103,6 @@ export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove 
   const renderInputForType = (type: WorkoutSetType, columnIndex: number) => {
     const valuesInt = set.valuesInt || [];
     const valuesSec = set.valuesSec || [];
-    const units = set.units || [];
 
     switch (type) {
       case "TIME":
@@ -113,18 +141,13 @@ export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove 
               onChange={handleValueIntChange(columnIndex)}
               pattern="[0-9]*"
               placeholder=""
+              step="0.5"
               type="number"
               value={valuesInt[columnIndex] ?? ""}
             />
-            <select
-              className="border border-black rounded px-1 py-2 w-1/2 text-base font-bold bg-white dark:bg-slate-800 dark:text-gray-200 h-10 "
-              disabled={set.completed}
-              onChange={handleUnitChange(columnIndex)}
-              value={units[columnIndex] ?? "kg"}
-            >
-              <option value="kg">kg</option>
-              <option value="lbs">lbs</option>
-            </select>
+            <div className="border border-black rounded px-1 py-2 w-1/2 text-base font-bold bg-slate-100 dark:bg-slate-800 dark:text-gray-200 h-10 flex items-center justify-center">
+              lbs
+            </div>
           </div>
         );
       case "REPS":
@@ -158,8 +181,11 @@ export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove 
   return (
     <div className="w-full py-4 flex flex-col gap-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/50 rounded-xl shadow-sm mb-3 relative px-2 sm:px-4">
       <div className="flex items-center justify-between mb-2">
-        <div className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow dark:bg-blue-900 dark:text-blue-300">
-          SET {setIndex + 1}
+        <div className="flex items-center gap-2">
+          <div className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow dark:bg-blue-900 dark:text-blue-300">
+            SET {setIndex + 1}
+          </div>
+          {setTypeLabel && <div className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800">{setTypeLabel}</div>}
         </div>
         <Button
           aria-label="Supprimer la série"

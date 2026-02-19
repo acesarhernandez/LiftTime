@@ -14,6 +14,8 @@ export interface WorkoutBuilderState {
 }
 
 export type WorkoutBuilderStep = 1 | 2 | 3;
+export type WorkoutSelectionMode = "equipment_muscles" | "equipment_only" | "individual";
+export type WorkoutTrainingGoal = "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
 
 export interface StepperStepProps {
   stepNumber: number;

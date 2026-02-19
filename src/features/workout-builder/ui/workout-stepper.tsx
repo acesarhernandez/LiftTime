@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQueryState } from "nuqs";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ExerciseAttributeValueEnum } from "@prisma/client";
+import { ExerciseAttributeValueEnum, WeightUnit } from "@prisma/client";
 
 import { useCurrentLocale, useI18n } from "locales/client";
 import Trophy from "@public/images/trophy.png";
@@ -12,8 +12,11 @@ import useBoolean from "@/shared/hooks/useBoolean";
 import { WorkoutSessionSets } from "@/features/workout-session/ui/workout-session-sets";
 import { WorkoutSessionHeader } from "@/features/workout-session/ui/workout-session-header";
 import { DonationModal } from "@/features/workout-session/ui/donation-modal";
+import { SuggestedWorkoutSet } from "@/features/workout-session/types/workout-set";
 import { useDonationModal } from "@/features/workout-session/hooks/use-donation-modal";
+import { getWorkoutRecommendationAction } from "@/features/workout-session/actions/get-workout-recommendation.action";
 import { WorkoutBuilderFooter } from "@/features/workout-builder/ui/workout-stepper-footer";
+import { useSession } from "@/features/auth/lib/auth-client";
 import { env } from "@/env";
 import { Button } from "@/components/ui/button";
 import { NutripureAffiliateBanner } from "@/components/ads/nutripure-affiliate-banner";
@@ -22,6 +25,7 @@ import { HorizontalTopBanner } from "@/components/ads";
 import { StepperStepProps } from "../types";
 import { useWorkoutStepper } from "../hooks/use-workout-stepper";
 import { useWorkoutSession } from "../../workout-session/model/use-workout-session";
+import { WorkoutPreferencesPanel } from "./workout-preferences-panel";
 import { StepperHeader } from "./stepper-header";
 import { MuscleSelection } from "./muscle-selection";
 import { ExercisesSelection } from "./exercises-selection";
@@ -32,6 +36,7 @@ import type { ExerciseWithAttributes, WorkoutBuilderStep } from "../types";
 
 export function WorkoutStepper() {
   const { loadSessionFromLocal } = useWorkoutSession();
+  const { data: authSession } = useSession();
 
   const t = useI18n();
   const router = useRouter();
@@ -40,11 +45,15 @@ export function WorkoutStepper() {
     currentStep,
     selectedEquipment,
     selectedMuscles,
+    selectionMode,
+    trainingGoal,
     exercisesByMuscle,
     isLoadingExercises,
     exercisesError,
     nextStep,
     prevStep,
+    setSelectionMode,
+    setTrainingGoal,
     toggleEquipment,
     clearEquipment,
     toggleMuscle,
@@ -75,18 +84,19 @@ export function WorkoutStepper() {
         })),
       );
       setFlatExercises(flat);
+      return;
     }
+
+    setFlatExercises([]);
   }, [exercisesByMuscle]);
 
   useEffect(() => {
     if (currentStep === 3 && !fromSession) {
       fetchExercises();
     }
-  }, [currentStep, selectedEquipment, selectedMuscles, fromSession]);
+  }, [currentStep, selectedEquipment, selectedMuscles, selectionMode, fromSession]);
 
   const { isWorkoutActive, session, startWorkout, quitWorkout } = useWorkoutSession();
-
-  const canContinue = currentStep === 1 ? canProceedToStep2 : currentStep === 2 ? canProceedToStep3 : exercisesByMuscle.length > 0;
 
   const handleShuffleExercise = async (exerciseId: string, muscle: string) => {
     try {
@@ -139,11 +149,45 @@ export function WorkoutStepper() {
     return [...orderedResults, ...remainingExercises];
   }, [flatExercises, exercisesOrder]);
 
-  const handleStartWorkout = () => {
-    if (orderedExercises.length > 0) {
-      startWorkout(orderedExercises, selectedEquipment, selectedMuscles);
-    } else {
+  const canContinue = currentStep === 1 ? canProceedToStep2 : currentStep === 2 ? canProceedToStep3 : orderedExercises.length > 0;
+
+  const [isStartingWorkout, setIsStartingWorkout] = useState(false);
+
+  const handleStartWorkout = async () => {
+    if (orderedExercises.length === 0) {
       console.log("🚀 [WORKOUT-STEPPER] No exercises to start workout with!");
+      return;
+    }
+    setIsStartingWorkout(true);
+    try {
+      const hasPresetSets = orderedExercises.some((exercise) => {
+        return "sets" in exercise && Array.isArray(exercise.sets) && exercise.sets.length > 0;
+      });
+
+      let suggestedSetsByExerciseId: Record<string, SuggestedWorkoutSet[]> | undefined;
+
+      if (!hasPresetSets && authSession?.user?.id) {
+        const recommendationResult = await getWorkoutRecommendationAction({
+          userId: authSession.user.id,
+          exerciseIds: orderedExercises.map((exercise) => exercise.id),
+          fallbackMuscles: selectedMuscles,
+          goal: trainingGoal,
+          preferredUnit: WeightUnit.lbs,
+          includeWarmupSets: true,
+          analysisWorkoutCount: 3,
+          successStreakThreshold: 2,
+        });
+
+        if (recommendationResult?.serverError) {
+          console.error("Failed to fetch workout recommendations:", recommendationResult.serverError);
+        } else if (recommendationResult?.data?.recommendationsByExerciseId) {
+          suggestedSetsByExerciseId = recommendationResult.data.recommendationsByExerciseId;
+        }
+      }
+
+      startWorkout(orderedExercises, selectedEquipment, selectedMuscles, suggestedSetsByExerciseId);
+    } finally {
+      setIsStartingWorkout(false);
     }
   };
 
@@ -174,6 +218,16 @@ export function WorkoutStepper() {
 
   const handleToggleMuscle = (muscle: ExerciseAttributeValueEnum) => {
     toggleMuscle(muscle);
+    if (fromSession) setFromSession(null);
+  };
+
+  const handleSelectionModeChange = (mode: "equipment_muscles" | "equipment_only" | "individual") => {
+    setSelectionMode(mode);
+    if (fromSession) setFromSession(null);
+  };
+
+  const handleTrainingGoalChange = (goal: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE") => {
+    setTrainingGoal(goal);
     if (fromSession) setFromSession(null);
   };
 
@@ -252,7 +306,29 @@ export function WorkoutStepper() {
         );
       case 2:
         return (
-          <MuscleSelection onToggleMuscle={handleToggleMuscle} selectedEquipment={selectedEquipment} selectedMuscles={selectedMuscles} />
+          <div className="space-y-6">
+            <WorkoutPreferencesPanel
+              onSelectionModeChange={handleSelectionModeChange}
+              onTrainingGoalChange={handleTrainingGoalChange}
+              selectionMode={selectionMode}
+              trainingGoal={trainingGoal}
+            />
+            {selectionMode === "equipment_muscles" ? (
+              <MuscleSelection
+                onToggleMuscle={handleToggleMuscle}
+                selectedEquipment={selectedEquipment}
+                selectedMuscles={selectedMuscles}
+              />
+            ) : (
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-900/60">
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  {selectionMode === "equipment_only"
+                    ? "Muscle filtering is skipped. Exercises will be suggested from your selected equipment."
+                    : "You can add exercises one-by-one in the next step."}
+                </p>
+              </div>
+            )}
+          </div>
         );
       case 3:
         return (
@@ -264,6 +340,7 @@ export function WorkoutStepper() {
             onDelete={handleDeleteExercise}
             onPick={handlePickExercise}
             onShuffle={handleShuffleExercise}
+            selectionMode={selectionMode}
             shufflingExerciseId={shufflingExerciseId}
           />
         );
@@ -330,6 +407,7 @@ export function WorkoutStepper() {
       <WorkoutBuilderFooter
         canContinue={canContinue}
         currentStep={currentStep}
+        isStartingWorkout={isStartingWorkout}
         onNext={nextStep}
         onPrevious={prevStep}
         onStartWorkout={handleStartWorkout}
