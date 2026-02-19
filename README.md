@@ -1,5 +1,5 @@
 <div align="center">
-<img src="public/logo.png" alt="Workout.cool Logo" width="120" height="120">
+<img src=null
 <h1>Workout.cool</h1>
 <h3><em>Modern fitness coaching platform with comprehensive exercise database</em></h3>
 <p>
