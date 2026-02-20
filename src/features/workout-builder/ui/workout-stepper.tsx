@@ -13,6 +13,7 @@ import { WorkoutSessionSets } from "@/features/workout-session/ui/workout-sessio
 import { WorkoutSessionHeader } from "@/features/workout-session/ui/workout-session-header";
 import { DonationModal } from "@/features/workout-session/ui/donation-modal";
 import { SuggestedWorkoutSet } from "@/features/workout-session/types/workout-set";
+import { TrainingMode } from "@/features/workout-session/types/training-mode";
 import { useDonationModal } from "@/features/workout-session/hooks/use-donation-modal";
 import { getWorkoutRecommendationAction } from "@/features/workout-session/actions/get-workout-recommendation.action";
 import { WorkoutBuilderFooter } from "@/features/workout-builder/ui/workout-stepper-footer";
@@ -230,6 +231,7 @@ export function WorkoutStepper() {
         string,
         { startedAt: string; reps?: number | null; weight?: number | null; weightUnit?: "kg" | "lbs" | null; durationSec?: number | null }
       > | undefined;
+      const trainingMode = (authSession?.user as { trainingMode?: TrainingMode } | undefined)?.trainingMode ?? "BEGINNER";
 
       if (!hasPresetSets && authSession?.user?.id) {
         const recommendationResult = await getWorkoutRecommendationAction({
@@ -239,6 +241,7 @@ export function WorkoutStepper() {
           goal: trainingGoal,
           preferredUnit: WeightUnit.lbs,
           includeWarmupSets: true,
+          includeAdvancedRirGuidance: trainingMode === "ADVANCED",
           analysisWorkoutCount: 3,
           successStreakThreshold: 2,
         });
@@ -257,7 +260,8 @@ export function WorkoutStepper() {
         selectedMuscles,
         suggestedSetsByExerciseId,
         trainingGoal,
-        lastPerformanceByExerciseId
+        lastPerformanceByExerciseId,
+        trainingMode
       );
     } finally {
       setIsStartingWorkout(false);

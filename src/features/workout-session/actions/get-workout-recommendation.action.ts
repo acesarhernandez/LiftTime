@@ -6,6 +6,7 @@ import { ExerciseAttributeNameEnum, ExerciseAttributeValueEnum, WeightUnit, Work
 
 import { prisma } from "@/shared/lib/prisma";
 import { actionClient } from "@/shared/api/safe-actions";
+import { TrainingMode } from "@/features/workout-session/types/training-mode";
 import { getMuscleProgressByUser } from "@/features/workout-session/model/workout-session-read-model";
 import { buildExerciseRecommendation } from "@/features/workout-session/model/progression-rules";
 import { auth } from "@/features/auth/lib/better-auth";
@@ -27,6 +28,7 @@ const getWorkoutRecommendationSchema = z.object({
   goal: z.enum(["STRENGTH", "HYPERTROPHY", "ENDURANCE"]).optional(),
   preferredUnit: z.nativeEnum(WeightUnit).optional(),
   includeWarmupSets: z.boolean().optional(),
+  includeAdvancedRirGuidance: z.boolean().optional(),
   analysisWorkoutCount: z.number().int().min(1).max(5).optional(),
   successStreakThreshold: z.number().int().min(1).max(4).optional()
 });
@@ -44,7 +46,7 @@ export const getWorkoutRecommendationAction = actionClient.schema(getWorkoutReco
   const preferredUnit = parsedInput.preferredUnit ?? WeightUnit.lbs;
 
   try {
-    const [exercises, historicalSets, muscleProgress] = await Promise.all([
+    const [exercises, historicalSets, muscleProgress, userProfile] = await Promise.all([
       prisma.exercise.findMany({
         where: {
           id: { in: parsedInput.exerciseIds }
@@ -109,8 +111,13 @@ export const getWorkoutRecommendationAction = actionClient.schema(getWorkoutReco
         goal: goal as ProgressionGoal,
         weeks: 1,
         targetWeightUnit: preferredUnit
+      }),
+      prisma.user.findUnique({
+        where: { id: parsedInput.userId },
+        select: { trainingMode: true }
       })
     ]);
+    const trainingMode: TrainingMode = userProfile?.trainingMode === "ADVANCED" ? "ADVANCED" : "BEGINNER";
 
     const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
 
@@ -196,6 +203,8 @@ export const getWorkoutRecommendationAction = actionClient.schema(getWorkoutReco
           goal: goal as ProgressionGoal,
           preferredUnit,
           includeWarmupSets: parsedInput.includeWarmupSets ?? true,
+          includeAdvancedRirGuidance: (parsedInput.includeAdvancedRirGuidance ?? false) && trainingMode === "ADVANCED",
+          trainingMode,
           analysisWorkoutCount: parsedInput.analysisWorkoutCount ?? 3,
           successStreakThreshold: parsedInput.successStreakThreshold ?? 2,
           fallbackPrimaryMuscle,
@@ -215,6 +224,7 @@ export const getWorkoutRecommendationAction = actionClient.schema(getWorkoutReco
       recommendationsByExerciseId,
       meta: {
         goal,
+        trainingMode,
         preferredUnit,
         analysisWorkoutCount: parsedInput.analysisWorkoutCount ?? 3,
         lastPerformanceByExerciseId,

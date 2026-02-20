@@ -2,6 +2,7 @@ import { ExerciseAttributeNameEnum, ExerciseAttributeValueEnum, PainLevel, Weigh
 
 import { convertWeight } from "@/shared/lib/weight-conversion";
 import { SuggestedWorkoutSet, WorkoutSetDbType, WorkoutSetType, WorkoutSetUnit } from "@/features/workout-session/types/workout-set";
+import { TrainingMode } from "@/features/workout-session/types/training-mode";
 import { MuscleFatigueStatus } from "@/features/workout-session/model/workout-session-read-model";
 import { ExerciseAttribute } from "@/entities/exercise/types/exercise.types";
 
@@ -79,6 +80,8 @@ export interface ExerciseRecommendationInput {
   goal?: ProgressionGoal;
   preferredUnit?: WeightUnit;
   includeWarmupSets?: boolean;
+  includeAdvancedRirGuidance?: boolean;
+  trainingMode?: TrainingMode;
   successStreakThreshold?: number;
   analysisWorkoutCount?: number;
   fallbackPrimaryMuscle?: ExerciseAttributeValueEnum | null;
@@ -384,7 +387,8 @@ function createWeightedSet(
   reps: number,
   unit: WeightUnit,
   type: WorkoutSetDbType,
-  recommendationReason: string
+  recommendationReason: string,
+  targetRir?: number | null
 ): SuggestedWorkoutSet {
   const normalizedWeight = roundToTwoDecimals(weight);
 
@@ -394,6 +398,7 @@ function createWeightedSet(
     types: ["WEIGHT" as WorkoutSetType, "REPS" as WorkoutSetType],
     valuesInt: [normalizedWeight, reps],
     units: [unit as WorkoutSetUnit],
+    rir: typeof targetRir === "number" ? targetRir : null,
     recommendationReason
   };
 }
@@ -448,6 +453,8 @@ export function buildExerciseRecommendation(input: ExerciseRecommendationInput):
   const goalConfig = PROGRESSION_GOALS[goal];
   const preferredUnit = input.preferredUnit ?? WeightUnit.lbs;
   const includeWarmupSets = input.includeWarmupSets ?? true;
+  const includeAdvancedRirGuidance = input.includeAdvancedRirGuidance ?? false;
+  const trainingMode = input.trainingMode ?? "BEGINNER";
   const successStreakThreshold = input.successStreakThreshold ?? 2;
   const analysisWorkoutCount = input.analysisWorkoutCount ?? 3;
 
@@ -518,7 +525,7 @@ export function buildExerciseRecommendation(input: ExerciseRecommendationInput):
       workingReps = clamp(workingReps + 1, goalConfig.repRange.min, goalConfig.repRange.max);
       reason = "Progressing reps first at the same load (double progression).";
 
-      if (latestOutcome?.averageRir !== null && latestOutcome?.averageRir !== undefined) {
+      if (trainingMode === "ADVANCED" && latestOutcome?.averageRir !== null && latestOutcome?.averageRir !== undefined) {
         if (latestOutcome.averageRir < rirTarget.min) {
           workingReps = clamp(workingReps - 1, goalConfig.repRange.min, goalConfig.repRange.max);
           appendReason(`Last effort was very hard (RIR ${latestOutcome.averageRir.toFixed(1)}). Holding progression for recovery.`);
@@ -619,6 +626,9 @@ export function buildExerciseRecommendation(input: ExerciseRecommendationInput):
   }
 
   const safeWorkingWeight = workingWeight ?? roundToAvailableIncrement(10, preferredUnit, equipment);
+  const targetWorkingRir = trainingMode === "ADVANCED" && includeAdvancedRirGuidance
+    ? Math.round((rirTarget.min + rirTarget.max) / 2)
+    : null;
 
   if (includeWarmupSets) {
     sets.push(...buildWarmupSets(safeWorkingWeight, preferredUnit, equipment, reason));
@@ -627,7 +637,15 @@ export function buildExerciseRecommendation(input: ExerciseRecommendationInput):
   const initialSetIndex = sets.length;
   for (let setOffset = 0; setOffset < workingSets; setOffset += 1) {
     sets.push(
-      createWeightedSet(initialSetIndex + setOffset, safeWorkingWeight, workingReps, preferredUnit, PrismaWorkoutSetType.NORMAL, reason)
+      createWeightedSet(
+        initialSetIndex + setOffset,
+        safeWorkingWeight,
+        workingReps,
+        preferredUnit,
+        PrismaWorkoutSetType.NORMAL,
+        reason,
+        targetWorkingRir
+      )
     );
   }
 

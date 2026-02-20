@@ -4,6 +4,7 @@ import { workoutSessionLocal } from "@/shared/lib/workout-session/workout-sessio
 import { WorkoutSession } from "@/shared/lib/workout-session/types/workout-session";
 import { convertWeight, type WeightUnit } from "@/shared/lib/weight-conversion";
 import { LastExercisePerformance, SuggestedWorkoutSet, WorkoutSessionExercise, WorkoutSet, WorkoutSetType, WorkoutSetUnit } from "@/features/workout-session/types/workout-set";
+import { BeginnerEffortGrade, TrainingMode, beginnerEffortToRir } from "@/features/workout-session/types/training-mode";
 import { useWorkoutBuilderStore } from "@/features/workout-builder/model/workout-builder.store";
 import { ExerciseWithAttributes } from "@/entities/exercise/types/exercise.types";
 
@@ -17,12 +18,20 @@ interface WorkoutSessionProgress {
   completed: boolean;
 }
 
+interface ActiveRestTimer {
+  endsAt: number;
+  durationSec: number;
+  goal: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
+  finishedAt?: number | null;
+}
+
 interface WorkoutSessionState {
   session: WorkoutSession | null;
   progress: Record<string, WorkoutSessionProgress>;
   elapsedTime: number;
   isTimerRunning: boolean;
   isWorkoutActive: boolean;
+  restTimer: ActiveRestTimer | null;
   currentExerciseIndex: number;
   currentExercise: WorkoutSessionExercise | null;
 
@@ -38,12 +47,18 @@ interface WorkoutSessionState {
     muscles: any[],
     suggestedSetsByExerciseId?: Record<string, SuggestedWorkoutSet[]>,
     trainingGoal?: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE",
-    lastPerformanceByExerciseId?: Record<string, LastExercisePerformance>
+    lastPerformanceByExerciseId?: Record<string, LastExercisePerformance>,
+    trainingMode?: TrainingMode
   ) => void;
   quitWorkout: () => void;
   completeWorkout: () => void;
   toggleTimer: () => void;
   resetTimer: () => void;
+  setElapsedTime: (seconds: number) => void;
+  startRestTimer: (durationSec: number, goal: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE") => void;
+  cancelRestTimer: () => void;
+  completeRestTimer: () => void;
+  applyBeginnerEffortGrades: (effortByExerciseId: Partial<Record<string, BeginnerEffortGrade>>) => void;
   updateExerciseProgress: (exerciseId: string, progressData: Partial<WorkoutSessionProgress>) => void;
   addSet: () => void;
   updateSet: (exerciseIndex: number, setIndex: number, data: Partial<WorkoutSet>) => void;
@@ -67,13 +82,14 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
   elapsedTime: 0,
   isTimerRunning: false,
   isWorkoutActive: false,
+  restTimer: null,
   currentExerciseIndex: 0,
   currentExercise: null,
   exercisesCompleted: 0,
   totalExercises: 0,
   progressPercent: 0,
 
-  startWorkout: (exercises, _equipment, muscles, suggestedSetsByExerciseId, trainingGoal, lastPerformanceByExerciseId) => {
+  startWorkout: (exercises, _equipment, muscles, suggestedSetsByExerciseId, trainingGoal, lastPerformanceByExerciseId, trainingMode) => {
     const sessionExercises: WorkoutSessionExercise[] = exercises.map((ex, idx) => {
       const lastPerformance = lastPerformanceByExerciseId?.[ex.id] ?? null;
 
@@ -98,7 +114,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
           units: s.units ?? [],
           recommendationReason: s.recommendationReason,
           rir: s.rir ?? null,
-          painLevel: s.painLevel ?? "NONE",
+          painLevel: s.painLevel ?? null,
           completed: false,
         }));
         return {
@@ -123,7 +139,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
             valuesInt: [],
             valuesSec: [],
             units: [],
-            painLevel: "NONE",
+            painLevel: null,
             completed: false,
           },
         ],
@@ -136,6 +152,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       startedAt: new Date().toISOString(),
       exercises: sessionExercises,
       trainingGoal: trainingGoal ?? "HYPERTROPHY",
+      trainingMode: trainingMode ?? "BEGINNER",
       status: "active",
       muscles,
     };
@@ -148,6 +165,8 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       elapsedTime: 0,
       isTimerRunning: false,
       isWorkoutActive: true,
+      restTimer: null,
+      currentExerciseIndex: 0,
       currentExercise: sessionExercises[0],
     });
   },
@@ -163,6 +182,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       elapsedTime: 0,
       isTimerRunning: false,
       isWorkoutActive: false,
+      restTimer: null,
       currentExerciseIndex: 0,
       currentExercise: null,
     });
@@ -186,6 +206,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
         elapsedTime: 0,
         isTimerRunning: false,
         isWorkoutActive: false,
+        restTimer: null,
       });
     }
 
@@ -208,6 +229,97 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
         workoutSessionLocal.update(state.session.id, { duration: 0 });
       }
       return { elapsedTime: 0 };
+    });
+  },
+
+  setElapsedTime: (seconds) => {
+    set((state) => {
+      if (!state.session) {
+        return { elapsedTime: seconds };
+      }
+
+      workoutSessionLocal.update(state.session.id, { duration: seconds });
+      return { elapsedTime: seconds };
+    });
+  },
+
+  startRestTimer: (durationSec, goal) => {
+    set({
+      restTimer: {
+        endsAt: Date.now() + durationSec * 1000,
+        durationSec,
+        goal,
+        finishedAt: null
+      }
+    });
+  },
+
+  cancelRestTimer: () => {
+    set({ restTimer: null });
+  },
+
+  completeRestTimer: () => {
+    set((state) => {
+      if (!state.restTimer || state.restTimer.finishedAt) {
+        return state;
+      }
+
+      return {
+        restTimer: {
+          ...state.restTimer,
+          finishedAt: Date.now()
+        }
+      };
+    });
+  },
+
+  applyBeginnerEffortGrades: (effortByExerciseId) => {
+    const { session } = get();
+    if (!session) {
+      return;
+    }
+
+    const updatedExercises = session.exercises.map((exercise) => {
+      const effortGrade = effortByExerciseId[exercise.id];
+      if (!effortGrade) {
+        return exercise;
+      }
+
+      const rirValue = beginnerEffortToRir[effortGrade];
+      const updatedSets = exercise.sets.map((set) => {
+        if (!set.completed || set.type === "WARMUP" || typeof set.rir === "number") {
+          return set;
+        }
+
+        return {
+          ...set,
+          rir: rirValue
+        };
+      });
+
+      return {
+        ...exercise,
+        sets: updatedSets
+      };
+    });
+
+    const updatedSession: WorkoutSession = {
+      ...session,
+      exercises: updatedExercises,
+      beginnerEffortByExerciseId: {
+        ...(session.beginnerEffortByExerciseId ?? {}),
+        ...effortByExerciseId
+      }
+    };
+
+    workoutSessionLocal.update(session.id, {
+      exercises: updatedExercises,
+      beginnerEffortByExerciseId: updatedSession.beginnerEffortByExerciseId
+    });
+
+    set({
+      session: updatedSession,
+      currentExercise: updatedExercises[get().currentExerciseIndex]
     });
   },
 
@@ -263,7 +375,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       valuesInt: valuesIntToCopy,
       valuesSec: valuesSecToCopy,
       units: unitsToCopy,
-      painLevel: "NONE",
+      painLevel: null,
       completed: false,
     };
 
@@ -464,8 +576,9 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
           isWorkoutActive: true,
           currentExerciseIndex: session.currentExerciseIndex ?? 0,
           currentExercise: session.exercises[session.currentExerciseIndex ?? 0],
-          elapsedTime: 0,
+          elapsedTime: session.duration ?? 0,
           isTimerRunning: false,
+          restTimer: null
         });
       }
     }
@@ -491,7 +604,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
           valuesInt: [],
           valuesSec: [],
           units: [],
-          painLevel: "NONE",
+          painLevel: null,
           completed: false,
         },
       ],

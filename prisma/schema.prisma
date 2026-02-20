@@ -15,6 +15,11 @@ enum UserRole {
   user
 }
 
+enum TrainingMode {
+  BEGINNER
+  ADVANCED
+}
+
 model User {
   id            String      @id
   firstName     String      @default("")
@@ -41,6 +46,7 @@ model User {
   subscriptions Subscription[]
   licenses      License[]
   isPremium     Boolean?       @default(false)
+  trainingMode  TrainingMode   @default(BEGINNER)
 
   // Training programs
   programEnrollments UserProgramEnrollment[]

@@ -4,11 +4,15 @@ import { useI18n } from "locales/client";
 import { AVAILABLE_WORKOUT_SET_TYPES, MAX_WORKOUT_SET_COLUMNS } from "@/shared/constants/workout-set-types";
 import { WorkoutSet, WorkoutSetType } from "@/features/workout-session/types/workout-set";
 import { getWorkoutSetTypeLabels } from "@/features/workout-session/lib/workout-set-labels";
+import { WorkoutSetVisualStatus } from "@/features/workout-session/lib/session-status";
 import { Button } from "@/components/ui/button";
 
 interface WorkoutSetRowProps {
   set: WorkoutSet;
   setIndex: number;
+  visualStatus: WorkoutSetVisualStatus;
+  isBarbellExercise?: boolean;
+  showRirInput?: boolean;
   onChange: (setIndex: number, data: Partial<WorkoutSet>) => void;
   onFinish: () => void;
   onRemove: () => void;
@@ -29,11 +33,40 @@ const PAIN_LEVEL_OPTIONS = [
   { value: "SEVERE", label: "Severe" },
 ] as const;
 
-export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove }: WorkoutSetRowProps) {
+const SET_STATUS_META: Record<WorkoutSetVisualStatus, { label: string; className: string }> = {
+  NOT_STARTED: {
+    label: "Not started",
+    className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+  },
+  IN_PROGRESS: {
+    label: "In progress",
+    className: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200"
+  },
+  COMPLETE: {
+    label: "Complete",
+    className: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200"
+  },
+  MISSING_DATA: {
+    label: "Missing data",
+    className: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+  }
+};
+
+export function WorkoutSessionSet({
+  set,
+  setIndex,
+  visualStatus,
+  isBarbellExercise,
+  showRirInput,
+  onChange,
+  onFinish,
+  onRemove
+}: WorkoutSetRowProps) {
   const t = useI18n();
   const types = set.types || [];
   const typeLabels = getWorkoutSetTypeLabels(t);
   const setTypeLabel = set.type && set.type !== "NORMAL" ? setTypeLabels[set.type] : null;
+  const statusMeta = SET_STATUS_META[visualStatus];
 
   const handleTypeChange = (columnIndex: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newTypes = [...types];
@@ -159,21 +192,24 @@ export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove 
         );
       case "WEIGHT":
         return (
-          <div className="flex gap-1 w-full items-center">
-            <input
-              className="border border-black rounded px-1 py-2 w-1/2 text-base text-center font-bold dark:bg-slate-800"
-              disabled={set.completed}
-              min={0}
-              onChange={handleValueIntChange(columnIndex)}
-              pattern="[0-9]*"
-              placeholder=""
-              step="0.5"
-              type="number"
-              value={valuesInt[columnIndex] ?? ""}
-            />
-            <div className="border border-black rounded px-1 py-2 w-1/2 text-base font-bold bg-slate-100 dark:bg-slate-800 dark:text-gray-200 h-10 flex items-center justify-center">
-              lbs
+          <div className="w-full">
+            <div className="flex gap-1 w-full items-center">
+              <input
+                className="border border-black rounded px-1 py-2 w-1/2 text-base text-center font-bold dark:bg-slate-800"
+                disabled={set.completed}
+                min={0}
+                onChange={handleValueIntChange(columnIndex)}
+                pattern="[0-9]*"
+                placeholder=""
+                step="0.5"
+                type="number"
+                value={valuesInt[columnIndex] ?? ""}
+              />
+              <div className="border border-black rounded px-1 py-2 w-1/2 text-base font-bold bg-slate-100 dark:bg-slate-800 dark:text-gray-200 h-10 flex items-center justify-center">
+                lbs
+              </div>
             </div>
+            {isBarbellExercise && <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Barbell + Plates</p>}
           </div>
         );
       case "REPS":
@@ -212,6 +248,7 @@ export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove 
             SET {setIndex + 1}
           </div>
           {setTypeLabel && <div className="text-xs font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800">{setTypeLabel}</div>}
+          <div className={`text-xs font-semibold px-2 py-1 rounded-full ${statusMeta.className}`}>{statusMeta.label}</div>
         </div>
         <Button
           aria-label="Supprimer la série"
@@ -278,20 +315,22 @@ export function WorkoutSessionSet({ set, setIndex, onChange, onFinish, onRemove 
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-1">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">RIR (reps in reserve)</label>
-          <input
-            className="border border-black rounded px-2 py-2 text-sm text-center font-bold dark:bg-slate-800"
-            disabled={set.completed}
-            max={10}
-            min={0}
-            onChange={handleRirChange}
-            placeholder="e.g. 2"
-            type="number"
-            value={set.rir ?? ""}
-          />
-        </div>
+      <div className={`grid grid-cols-1 ${showRirInput ? "md:grid-cols-2" : ""} gap-2 mt-1`}>
+        {showRirInput && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">RIR (reps in reserve)</label>
+            <input
+              className="border border-black rounded px-2 py-2 text-sm text-center font-bold dark:bg-slate-800"
+              disabled={set.completed}
+              max={10}
+              min={0}
+              onChange={handleRirChange}
+              placeholder="e.g. 2"
+              type="number"
+              value={set.rir ?? ""}
+            />
+          </div>
+        )}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Pain / discomfort</label>
           <select

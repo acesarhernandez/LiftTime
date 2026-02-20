@@ -36,6 +36,7 @@ export const auth = betterAuth({
           banReason: true,
           banExpires: true,
           isPremium: true,
+          trainingMode: true,
           accounts: {
             select: { providerId: true },
           },
@@ -64,6 +65,9 @@ export const auth = betterAuth({
         type: "string",
       },
       lastName: {
+        type: "string",
+      },
+      trainingMode: {
         type: "string",
       },
     },
