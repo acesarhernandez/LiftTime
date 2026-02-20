@@ -1400,7 +1400,7 @@ export default {
       note_2026_02_20: {
         title: "📊 Precision Logging + Smart Session Controls",
         content:
-          "<li>New sticky progress bar tracks session progress and swaps to a rest countdown after each set</li><li>Set and exercise states are now visible at a glance, including compact progress like Sets x/y</li><li>Exercise cards are now collapsible to cut scroll load during longer sessions</li><li>Barbell lifts now show a clear cue under weight input: <strong>Barbell + Plates</strong></li><li>Progression logic is now mode-ready (Beginner/Advanced), and skipped effort inputs do not penalize recommendations</li>",
+          "<li>New sticky progress bar tracks session progress and swaps to a rest countdown after each set</li><li>Set and exercise states are now visible at a glance, including compact progress like Sets x/y</li><li>Exercise cards are now collapsible to cut scroll load during longer sessions</li><li>You can now reorder exercises inside an active session with move up/down controls</li><li>Barbell lifts now show a clear cue under weight input: <strong>Barbell + Plates</strong></li><li>Privacy preference prompts no longer reappear on every reload in local/self-hosted setups</li><li>Branding refresh: updated logo plus Portland signature footer on login, register, and statistics</li><li>Leaderboard reset messaging is now clearly labeled as <strong>PST (Portland)</strong></li><li>Progression logic is now mode-ready (Beginner/Advanced), and skipped effort inputs do not penalize recommendations</li>",
       },
       note_2026_02_19: {
         title: "💪 Smarter Workout Flow + Progress Tracking",
