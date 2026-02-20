@@ -101,9 +101,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         sets: {
           where: {
             completed: true,
-            types: {
-              hasEvery: ["WEIGHT", "REPS"],
-            },
+            weight: { not: null },
+            reps: { not: null },
           },
           orderBy: {
             setIndex: "asc",
@@ -125,18 +124,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       let bestOneRepMax = 0;
 
       sessionExercise.sets.forEach((set) => {
-        // Find weight and reps values from arrays
-        const weightIndex = set.types.indexOf("WEIGHT");
-        const repsIndex = set.types.indexOf("REPS");
-
-        if (weightIndex !== -1 && repsIndex !== -1 && set.valuesInt && set.valuesInt[weightIndex] && set.valuesInt[repsIndex]) {
-          const weight = set.valuesInt[weightIndex];
-          const reps = set.valuesInt[repsIndex];
-          const oneRepMax = calculateOneRepMax(weight, reps);
-
-          if (oneRepMax > bestOneRepMax) {
-            bestOneRepMax = oneRepMax;
-          }
+        if (set.weight !== null && set.reps !== null) {
+          const oneRepMax = calculateOneRepMax(Number(set.weight), set.reps);
+          bestOneRepMax = Math.max(bestOneRepMax, oneRepMax);
         }
       });
 

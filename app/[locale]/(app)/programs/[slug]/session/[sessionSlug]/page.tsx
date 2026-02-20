@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: SessionDetailPageProps): Prom
       title: sessionMetadata.title,
       description: sessionMetadata.description,
       url: `https://www.workout.cool/${locale}/programs/${slug}/session/${sessionSlug}`,
-      siteName: "Workout Cool",
+      siteName: "LiftTime",
       images: [
         {
           url: imageUrl,
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: SessionDetailPageProps): Prom
       title: sessionMetadata.title,
       description: sessionMetadata.description,
       images: [imageUrl],
-      creator: "@WorkoutCool",
+      creator: "@LiftTime",
     },
     alternates: {
       canonical: `https://www.workout.cool/${locale}/programs/${slug}/session/${sessionSlug}`,

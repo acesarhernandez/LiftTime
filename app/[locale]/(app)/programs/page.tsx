@@ -7,7 +7,7 @@ import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Programmes",
-  description: "Découvrez nos programmes d'entraînement gamifiés pour tous les niveaux - Rejoins la communauté WorkoutCool !",
+  description: "Découvrez nos programmes d'entraînement gamifiés pour tous les niveaux - Rejoins la communauté LiftTime !",
 };
 
 export default async function ProgramsRootPage({ params }: { params: Promise<{ locale: string }> }) {

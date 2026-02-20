@@ -189,7 +189,7 @@ export function ProgramDetailPage({ program, isAuthenticated }: ProgramDetailPag
           {/* Mascot Emoji */}
           <div className="absolute top-4 right-4 w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full border-2 border-white/30 flex items-center justify-center">
             <Image
-              alt="Mascotte WorkoutCool"
+              alt="Mascotte LiftTime"
               className="w-12 h-12 object-contain"
               height={48}
               src="/images/emojis/WorkoutCoolSwag.png"

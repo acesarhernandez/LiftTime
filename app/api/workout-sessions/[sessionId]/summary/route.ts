@@ -61,13 +61,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           totalSets++;
 
           // Calculate reps
-          if (set.types.includes("REPS") && set.valuesInt.length > 0) {
-            const reps = set.valuesInt[0];
+          if (set.reps !== null) {
+            const reps = set.reps;
             totalReps += reps;
 
             // Calculate volume if weight is present
-            if (set.types.includes("WEIGHT") && set.valuesInt.length > 1) {
-              const weight = set.valuesInt[1];
+            if (set.weight !== null) {
+              const weight = Number(set.weight);
               totalVolume += weight * reps;
               totalWeightLifted += weight;
             }

@@ -19,8 +19,8 @@ export default async function SalesTermsPage({ params }: PageProps) {
           </Typography>
           <p className="text-muted-foreground text-base md:text-lg">
             {locale === "fr"
-              ? "Les conditions qui régissent l’achat d’un abonnement Workout Cool."
-              : "The terms governing the purchase of a Workout Cool subscription."}
+              ? "Les conditions qui régissent l’achat d’un abonnement LiftTime."
+              : "The terms governing the purchase of a LiftTime subscription."}
           </p>
         </header>
 

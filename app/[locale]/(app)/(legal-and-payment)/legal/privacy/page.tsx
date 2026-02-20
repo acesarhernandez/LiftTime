@@ -19,7 +19,7 @@ export default async function PrivacyPolicyPage({ params }: PageProps) {
           <p className="text-muted-foreground text-base md:text-lg">
             {locale === "fr"
               ? "Voici comment nous traitons vos données personnelles."
-              : "How we handle your personal data at Workout Cool."}
+              : "How we handle your personal data at LiftTime."}
           </p>
         </header>
 

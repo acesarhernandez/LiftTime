@@ -213,7 +213,7 @@ export default function AdminDashboard() {
         </div>
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard Admin</h1>
-          <p className="text-gray-600 dark:text-gray-300">WorkoutCool Admin</p>
+          <p className="text-gray-600 dark:text-gray-300">LiftTime Admin</p>
         </div>
       </div>
 

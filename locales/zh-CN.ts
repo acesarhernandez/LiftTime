@@ -16,7 +16,7 @@ export default {
     workouts_per_week: "次/周",
     last_workout: "上次锻炼",
     page_title: "冠军排行榜",
-    page_subtitle: "登上顶峰，成为 Workout.cool 传奇",
+    page_subtitle: "登上顶峰，成为 LiftTime 传奇",
     period_all_time: "所有时间",
     period_monthly: "月度",
     period_weekly: "每周",
@@ -115,7 +115,7 @@ export default {
     premium_required_title: "需要高级",
     premium_required_subtitle: "这是一个高级访问。升级以访问所有高级内容。",
     premium_required_button: "升级到高级",
-    already_premium: "您正在享受 Workout.cool Premium",
+    already_premium: "您正在享受 LiftTime Premium",
     no_ads: "无广告",
     upgrade: "升级",
 
@@ -313,7 +313,7 @@ export default {
     // FAQ
     faq: {
       title: "常见问题",
-      subtitle: "关于 Workout.cool 和我们的使命",
+      subtitle: "关于 LiftTime 和我们的使命",
       items: [
         {
           question: "为什么开源还要付费？",
@@ -321,7 +321,7 @@ export default {
             "这是一个很好的问题！代码将始终保持免费，但维护服务器、数据库和基础设施需要成本。您的贡献帮助我们让工具免费提供给每个人。这是一个双赢的模式：您获得高级功能，社区保持免费访问！",
         },
         {
-          question: "我可以自托管 Workout.cool 吗？",
+          question: "我可以自托管 LiftTime 吗？",
           answer:
             "当然可以！整个代码库在 MIT 许可证下可在 GitHub 上获得。您可以在自己的服务器上部署它，根据需要进行定制，并完全免费使用。自托管为您提供对数据和锻炼隐私的完全控制。",
         },
@@ -395,7 +395,7 @@ export default {
       ],
       quote: {
         text: "我们相信健身工具应该对每个人都是可访问的。您的支持帮助我们继续创新，同时保持这一愿景。",
-        author: "— Workout.cool 团队",
+        author: "— LiftTime 团队",
       },
     },
 
@@ -410,10 +410,10 @@ export default {
     premium_active_subtitle: "所有功能解锁",
     free_intro_title: "您已经免费获得很多了...",
     free_intro_text:
-      "Workout.cool 是一个免费、开源的健身应用，每天有 60,000+ 用户使用。它是由爱（不是 VC 资金 ^^）构建的，并且为我们保持运行需要真实的时间和金钱。",
+      "LiftTime 是一个免费、开源的健身应用，每天有 60,000+ 用户使用。它是由爱（不是 VC 资金 ^^）构建的，并且为我们保持运行需要真实的时间和金钱。",
     donation_story_text:
       "起初，我们依靠捐赠运行。但正如您所想，捐赠不足以支付开发和运行成本。所以我们为您制作了一个包，将帮助我们保持灯光，并在路上解锁一些超级能力。",
-    health_upgrade_text: "如果 Workout.cool 帮助您提升健康，请考虑升级到高级：D ！",
+    health_upgrade_text: "如果 LiftTime 帮助您提升健康，请考虑升级到高级：D ！",
     unlock_features_text: "解锁高级功能 & 支持开源健身。",
     invest_yourself_quote: "不要在健身和书籍上吝啬 — 投资于自己！",
     support_mission: "支持使命",
@@ -434,7 +434,7 @@ export default {
     thank_supporting: "感谢您的支持。",
     no_pressure: "没有压力。您可以随时升级。",
     keep_pushing: "继续努力！huhu",
-    still_unsure: "还不确定？没关系。Workout.cool 将始终保持免费和开源。",
+    still_unsure: "还不确定？没关系。LiftTime 将始终保持免费和开源。",
     support_helps: "但如果你相信我们在构建的东西，并且你负担得起，你的支持将帮助 💚",
     self_hosting: "自托管",
     community: "社区",
@@ -565,12 +565,12 @@ export default {
       },
       note_2025_06_19: {
         title: "📱 现已作为 PWA 提供！",
-        content: "Workout.cool v1.2 现在是一个渐进式网络应用！将其安装在您的手机上，即可享受原生应用体验和离线访问。🚀",
+        content: "LiftTime v1.2 现在是一个渐进式网络应用！将其安装在您的手机上，即可享受原生应用体验和离线访问。🚀",
       },
       note_2025_06_18: {
         title:
           "🚀 在 <a href='https://news.ycombinator.com/item?id=44309320' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>Hacker News</a> 上排名第一！",
-        content: "Workout.cool 在 Hacker News 上登顶！感谢大家的大力支持，欢迎所有新用户！💪",
+        content: "LiftTime 在 Hacker News 上登顶！感谢大家的大力支持，欢迎所有新用户！💪",
       },
       note_2025_06_01: {
         title: "🎉 新功能：版本说明对话框",
@@ -585,7 +585,7 @@ export default {
 
   // Premium Upsell Alert
   donation_alert: {
-    title: "使用 Workout.cool Premium 解锁高级功能",
+    title: "使用 LiftTime Premium 解锁高级功能",
     or: "或",
   },
 
@@ -907,7 +907,7 @@ export default {
     replace: "替换",
     loading: "加载中...",
     image_deleted: "图片已删除",
-    discover_workoutcool: "发现 Workout Cool",
+    discover_workoutcool: "发现 LiftTime",
     received_just_now: "刚刚收到",
     copied: "已复制",
     url_copied: "URL 已复制",

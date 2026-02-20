@@ -119,7 +119,7 @@ export default async function ToolsPage() {
                         }`}
                       >
                         <Image
-                          alt="Workout Cool Emoji"
+                          alt="LiftTime Emoji"
                           className="object-contain"
                           height={48}
                           src={`/images/emojis/${tool.emoji}`}
@@ -182,7 +182,7 @@ export default async function ToolsPage() {
                       }`}
                     >
                       <Image
-                        alt="Workout Cool Emoji"
+                        alt="LiftTime Emoji"
                         className="object-contain"
                         height={48}
                         src={`/images/emojis/${tool.emoji}`}

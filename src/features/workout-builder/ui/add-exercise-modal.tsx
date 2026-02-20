@@ -91,7 +91,7 @@ export const AddExerciseModal = ({ isOpen, onClose, selectedEquipment }: AddExer
           <div className="flex items-center gap-4">
             <div className="relative">
               <Image
-                alt="Workout Cool mascotte"
+                alt="LiftTime mascotte"
                 className="rounded-full"
                 height={40}
                 src="/images/emojis/WorkoutCoolHappy.png"

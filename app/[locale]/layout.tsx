@@ -274,7 +274,7 @@ export default async function RootLayout({ params, children }: RootLayoutProps) 
           {/* PWA Meta Tags */}
           <meta content="yes" name="apple-mobile-web-app-capable" />
           <meta content="default" name="apple-mobile-web-app-status-bar-style" />
-          <meta content="Workout Cool" name="apple-mobile-web-app-title" />
+          <meta content="LiftTime" name="apple-mobile-web-app-title" />
           <meta content="yes" name="mobile-web-app-capable" />
           <meta content="#FF5722" name="msapplication-TileColor" />
           <meta content="/android-chrome-192x192.png" name="msapplication-TileImage" />

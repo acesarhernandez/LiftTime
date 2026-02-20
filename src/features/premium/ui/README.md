@@ -1,4 +1,4 @@
-# Workout.cool Premium Pricing Components 💪
+# LiftTime Premium Pricing Components 💪
 
 This directory contains the complete pricing page implementation following the fitness-focused conversion strategy outlined in the
 development prompt.

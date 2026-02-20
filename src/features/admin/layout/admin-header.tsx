@@ -33,7 +33,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
           </Button>
 
           <Link className="flex items-center space-x-3" href="/admin">
-            <Image alt="WorkoutCool Logo" className="h-8 w-8" height={32} src={Logo} width={32} />
+            <Image alt="LiftTime Logo" className="h-8 w-8" height={32} src={Logo} width={32} />
             <span className="hidden text-xl font-semibold text-gray-900 sm:block dark:text-white">Administration</span>
           </Link>
         </div>

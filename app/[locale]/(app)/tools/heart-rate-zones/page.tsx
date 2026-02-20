@@ -113,7 +113,7 @@ export default async function HeartRateZonesPage({ params }: { params: Promise<{
             },
             author: {
               "@type": "Organization",
-              name: "WorkoutCool",
+              name: "LiftTime",
             },
             datePublished: "2024-01-01",
             dateModified: new Date().toISOString().split("T")[0],
@@ -148,12 +148,12 @@ export default async function HeartRateZonesPage({ params }: { params: Promise<{
             dateModified: new Date().toISOString(),
             author: {
               "@type": "Organization",
-              name: "WorkoutCool",
+              name: "LiftTime",
               url: getServerUrl(),
             },
             publisher: {
               "@type": "Organization",
-              name: "WorkoutCool",
+              name: "LiftTime",
               logo: {
                 "@type": "ImageObject",
                 url: `${getServerUrl()}/logo.png`,

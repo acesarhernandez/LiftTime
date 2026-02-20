@@ -5,7 +5,7 @@ import { paths } from "@/shared/constants/paths";
 import { SignUpForm } from "@/features/auth/signup/ui/signup-form";
 
 export const metadata = {
-  title: "Sign Up - Workout.cool",
+  title: "Sign Up - LiftTime",
   description: "Créez votre compte pour commencer",
 };
 

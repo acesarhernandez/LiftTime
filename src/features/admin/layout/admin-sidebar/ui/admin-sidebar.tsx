@@ -81,7 +81,7 @@ export const AdminSidebar = () => {
         {/* Footer */}
         <div className="border-t border-gray-200 p-4 dark:border-gray-700">
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            <p>WorkoutCool Admin</p>
+            <p>LiftTime Admin</p>
             <p className="mt-1">Version {version.version}</p>
           </div>
         </div>

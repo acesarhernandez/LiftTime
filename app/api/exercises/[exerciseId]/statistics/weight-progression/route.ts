@@ -96,9 +96,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         sets: {
           where: {
             completed: true,
-            types: {
-              has: "WEIGHT",
-            },
+            weight: { not: null },
           },
           orderBy: {
             setIndex: "asc",
@@ -114,17 +112,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Group by session and find max weight per session
     const sessionMaxWeights = new Map<string, { date: Date; maxWeight: number }>();
-    console.log("sessionMaxWeights:", sessionMaxWeights);
 
     workoutSessionExercises.forEach((sessionExercise) => {
       const sessionDate = sessionExercise.workoutSession.startedAt.toISOString().split("T")[0];
       let maxWeight = 0;
 
       sessionExercise.sets.forEach((set) => {
-        // Find weight value from arrays
-        const weightIndex = set.types.indexOf("WEIGHT");
-        if (weightIndex !== -1 && set.valuesInt && set.valuesInt[weightIndex]) {
-          const weight = set.valuesInt[weightIndex];
+        if (set.weight !== null) {
+          const weight = Number(set.weight);
           if (weight > maxWeight) {
             maxWeight = weight;
           }

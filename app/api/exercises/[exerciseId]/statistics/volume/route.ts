@@ -137,20 +137,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       sessionExercise.sets.forEach((set) => {
         let volume = 0;
 
-        // Calculate volume based on set type
-        const weightIndex = set.types.indexOf("WEIGHT");
-        const repsIndex = set.types.indexOf("REPS");
-        const timeIndex = set.types.indexOf("TIME");
-
-        if (weightIndex !== -1 && repsIndex !== -1 && set.valuesInt && set.valuesInt[weightIndex] && set.valuesInt[repsIndex]) {
+        // Calculate volume based on normalized set fields
+        if (set.weight !== null && set.reps !== null) {
           // Weight-based exercise: reps × weight
-          volume = set.valuesInt[repsIndex] * set.valuesInt[weightIndex];
-        } else if (repsIndex !== -1 && set.valuesInt && set.valuesInt[repsIndex]) {
+          volume = set.reps * Number(set.weight);
+        } else if (set.reps !== null) {
           // Bodyweight exercise: count reps as volume
-          volume = set.valuesInt[repsIndex];
-        } else if (timeIndex !== -1 && set.valuesSec && set.valuesSec[0]) {
+          volume = set.reps;
+        } else if (set.durationSec !== null) {
           // Time-based exercise: use seconds as volume
-          volume = set.valuesSec[0];
+          volume = set.durationSec;
         }
 
         if (volume > 0) {

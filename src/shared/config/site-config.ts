@@ -1,5 +1,5 @@
 export const SiteConfig = {
-  title: "Workout Cool",
+  title: "LiftTime",
   description: "Modern fitness coaching platform with comprehensive exercise database",
   keywords: [
     "fitness",
@@ -18,21 +18,21 @@ export const SiteConfig = {
   domain: "workout.cool",
   appIcon: "/images/logo4.jpg",
   company: {
-    name: "Workout Cool",
+    name: "LiftTime",
     address: "34 avenue des champ Elysée 75008 Paris, France",
   },
   brand: {
     primary: "#007291",
   },
   email: {
-    from: "Workout Cool <hello@workout.cool>",
+    from: "LiftTime <hello@workout.cool>",
     contact: "hello@workout.cool",
   },
   maker: {
     image: "https://workout.cool/images/me/twitter-en.jpg",
     website: "https://workout.cool",
     twitter: "https://twitter.com/workout_cool",
-    name: "Workout Cool",
+    name: "LiftTime",
   },
   auth: {
     password: false,
@@ -43,7 +43,7 @@ export const SiteConfig = {
       height: 630,
     },
     twitterHandle: "@snouzy_biceps",
-    applicationName: "Workout Cool",
+    applicationName: "LiftTime",
     category: "fitness",
     classification: "Fitness & Health",
   },

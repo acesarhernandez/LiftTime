@@ -1,6 +1,6 @@
 <div align="center">
-<img src=null
-<h1>Workout.cool</h1>
+<img src="public/logo.png" alt="LiftTime Logo" width="120" height="120">
+<h1>LiftTime</h1>
 <h3><em>Modern fitness coaching platform with comprehensive exercise database</em></h3>
 <p>
 <a href="https://github.com/Snouzy/workout-cool/graphs/contributors"><img src="https://img.shields.io/github/contributors/Snouzy/workout-cool?style=plastic" alt="Contributors">
@@ -57,7 +57,7 @@
 ## Sponsors
 
 <div>
-  <h4>They are helping making workout.cool free and open-source for everyone :</h4>
+  <h4>They are helping make LiftTime free and open-source for everyone :</h4>
 
 <a href="https://vercel.com/oss">
   <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
@@ -98,7 +98,7 @@ detailed instructions and video demonstrations.
 This project was born from a personal mission to revive and improve upon a previous fitness platform. As the **primary contributor** to the
 original [workout.lol](https://github.com/workout-lol/workout-lol) project, I witnessed its journey and abandonment. 🥹
 
-### The Story Behind **_workout.cool_**
+### The Story Behind **_LiftTime_**
 
 - 🏗️ **Original Contributor**: I was the main contributor to workout.lol
 - 💼 **Business Challenges**: The original project faced major hurdles with exercise video partnerships (no reliable video provider) could
@@ -110,7 +110,7 @@ original [workout.lol](https://github.com/workout-lol/workout-lol) project, I wi
 - 📧 **Radio Silence**: Despite multiple (15) attempts, there has been no response
 - 🚀 **New Beginning**: Rather than let this valuable work disappear, I decided to create a fresh, modern implementation
 
-### Why **_workout.cool_** Exists
+### Why **_LiftTime_** Exists
 
 **Someone had to step up.**
 
@@ -118,7 +118,7 @@ The opensource fitness community deserves better than broken promises and abando
 
 I'm not building this for profit.
 
-This isn't just a revival : it's an evolution. **workout.cool** represents everything the original project could have been, with the
+This isn't just a revival : it's an evolution. **LiftTime** represents everything the original project could have been, with the
 reliability, modern approach, and **maintenance** that the fitness open source community deserves.
 
 ## 👥 From the Community, For the Community
@@ -412,7 +412,7 @@ Appear in the README and on the website as supporter by donating:
 
 <p align="center">
   Your support helps cover hosting costs, exercise database updates, and continuous improvement.<br>
-  Thank you for keeping <strong>workout.cool</strong> alive and evolving 💪
+  Thank you for keeping <strong>LiftTime</strong> alive and evolving 💪
 </p>
 
 <br />

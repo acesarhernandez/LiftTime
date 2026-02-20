@@ -81,7 +81,7 @@ export function WelcomeModal({
             <div className="relative inline-block mb-4">
               <div className="w-24 h-24 mx-auto relative animate-bounce">
                 <Image
-                  alt="WorkoutCool Mascot"
+                  alt="LiftTime Mascot"
                   className="object-contain"
                   height={96}
                   src="/images/emojis/WorkoutCoolSwag.png"
