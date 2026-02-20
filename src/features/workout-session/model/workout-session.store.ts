@@ -64,6 +64,7 @@ interface WorkoutSessionState {
   updateSet: (exerciseIndex: number, setIndex: number, data: Partial<WorkoutSet>) => void;
   removeSet: (exerciseIndex: number, setIndex: number) => void;
   finishSet: (exerciseIndex: number, setIndex: number) => void;
+  reorderExercise: (fromIndex: number, toIndex: number) => void;
   goToNextExercise: () => void;
   goToPrevExercise: () => void;
   goToExercise: (targetIndex: number) => void;
@@ -439,6 +440,53 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       const exercisesCompleted = get().exercisesCompleted;
       set({ exercisesCompleted: exercisesCompleted + 1 });
     }
+  },
+
+  reorderExercise: (fromIndex, toIndex) => {
+    const { session, currentExerciseIndex } = get();
+    if (!session) return;
+
+    if (
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= session.exercises.length ||
+      toIndex >= session.exercises.length ||
+      fromIndex === toIndex
+    ) {
+      return;
+    }
+
+    const currentExerciseId = session.exercises[currentExerciseIndex]?.id;
+    const reorderedExercises = [...session.exercises];
+    const [movedExercise] = reorderedExercises.splice(fromIndex, 1);
+    reorderedExercises.splice(toIndex, 0, movedExercise);
+
+    const exercisesWithOrder = reorderedExercises.map((exercise, index) => ({
+      ...exercise,
+      order: index
+    }));
+
+    const nextCurrentExerciseIndex = currentExerciseId
+      ? exercisesWithOrder.findIndex((exercise) => exercise.id === currentExerciseId)
+      : 0;
+
+    const safeCurrentExerciseIndex = nextCurrentExerciseIndex >= 0 ? nextCurrentExerciseIndex : 0;
+    const updatedSession = {
+      ...session,
+      exercises: exercisesWithOrder,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    };
+
+    workoutSessionLocal.update(session.id, {
+      exercises: exercisesWithOrder,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    });
+
+    set({
+      session: updatedSession,
+      currentExerciseIndex: safeCurrentExerciseIndex,
+      currentExercise: exercisesWithOrder[safeCurrentExerciseIndex] ?? null
+    });
   },
 
   goToNextExercise: () => {

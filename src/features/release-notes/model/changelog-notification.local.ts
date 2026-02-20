@@ -1,4 +1,4 @@
-import { isValidISOTimestamp, getCurrentISOTimestamp } from "../lib/date-utils";
+import { compareDateStrings, getCurrentISOTimestamp, isValidDateString, isValidISOTimestamp } from "../lib/date-utils";
 
 import type { ReleaseNote } from "./notes";
 
@@ -119,16 +119,18 @@ function hasNewReleaseNotes(notes: ReleaseNote[], lastSeenTimestamp: string | nu
   }
 
   try {
-    // Convert the timestamp to a date for comparison
     const lastSeenDate = new Date(lastSeenTimestamp);
-    const latestDate = new Date(latestReleaseDate);
-
-    if (isNaN(lastSeenDate.getTime()) || isNaN(latestDate.getTime())) {
+    if (isNaN(lastSeenDate.getTime()) || !isValidDateString(latestReleaseDate)) {
       return true; // Show badge if we can't compare dates
     }
 
-    // Check if the latest release is newer than the last seen date
-    return latestDate.getTime() > lastSeenDate.getTime();
+    const lastSeenDateString = [
+      lastSeenDate.getFullYear(),
+      String(lastSeenDate.getMonth() + 1).padStart(2, "0"),
+      String(lastSeenDate.getDate()).padStart(2, "0"),
+    ].join("-");
+
+    return compareDateStrings(latestReleaseDate, lastSeenDateString) > 0;
   } catch (error) {
     console.warn("Error checking for new release notes:", error);
     return true; // Show badge on error to be safe

@@ -224,6 +224,8 @@ interface RootLayoutProps {
 
 export default async function RootLayout({ params, children }: RootLayoutProps) {
   const { locale } = await params;
+  const isWorkoutCoolDomain = env.NEXT_PUBLIC_APP_URL.includes("workout.cool");
+  const shouldLoadEzoicCmp = isWorkoutCoolDomain && env.NEXT_PUBLIC_SHOW_ADS === true && env.NEXT_PUBLIC_AD_PROVIDER === "ezoic";
   // Generate structured data
   const websiteStructuredData = generateStructuredData({
     type: "WebSite",
@@ -254,22 +256,26 @@ export default async function RootLayout({ params, children }: RootLayoutProps) 
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${env.NEXT_PUBLIC_AD_CLIENT}`}
           />
 
-          {/* Ezoic Privacy Scripts */}
-          {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-          <script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js" />
-          {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-          <script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js" />
+          {shouldLoadEzoicCmp && (
+            <>
+              {/* Ezoic Privacy Scripts */}
+              {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+              <script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js" />
+              {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+              <script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js" />
 
-          {/* Ezoic Header Script */}
-          <script async src="//www.ezojs.com/ezoic/sa.min.js" />
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.ezstandalone = window.ezstandalone || {};
-                ezstandalone.cmd = ezstandalone.cmd || [];
-              `,
-            }}
-          />
+              {/* Ezoic Header Script */}
+              <script async src="//www.ezojs.com/ezoic/sa.min.js" />
+              <script
+                dangerouslySetInnerHTML={{
+                  __html: `
+                    window.ezstandalone = window.ezstandalone || {};
+                    ezstandalone.cmd = ezstandalone.cmd || [];
+                  `,
+                }}
+              />
+            </>
+          )}
 
           {/* PWA Meta Tags */}
           <meta content="yes" name="apple-mobile-web-app-capable" />

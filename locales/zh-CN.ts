@@ -24,8 +24,8 @@ export default {
     no_sessions_this_month: "本月没有训练",
     registered_members_only: "仅限注册会员",
     registered_members_description: "创建账户以出现在排行榜中",
-    reset_timezone: "欧洲/巴黎重置",
-    reset_timezone_description: "每周和每月排行榜在巴黎时间午夜重置",
+    reset_timezone: "PST（Portland）重置",
+    reset_timezone_description: "每周和每月排行榜在 PST（Portland）午夜重置",
   },
   programs: {
     available_programs: "可用的课程",
@@ -530,6 +530,11 @@ export default {
     title: "新功能",
     release_notes: "更新日志",
     notes: {
+      note_2026_02_20: {
+        title: "📊 精准记录 + 智能训练会话控制",
+        content:
+          "<li>新的底部固定进度条可跟踪训练进度，并在每组后切换为休息倒计时</li><li>组和动作状态现在可一眼查看，并支持紧凑进度显示（组数 x/y）</li><li>动作卡片支持折叠，减少长训练中的滚动负担</li><li>杠铃动作在重量输入下方新增清晰提示：<strong>杠铃 + 杠铃片</strong></li><li>进阶逻辑已支持训练模式（新手/进阶）扩展，跳过主观强度输入不会惩罚推荐结果</li>",
+      },
       note_2026_02_19: {
         title: "💪 更智能的训练流程 + 进度追踪",
         content:

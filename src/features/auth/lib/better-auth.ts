@@ -11,37 +11,87 @@ import { sendEmail } from "@/shared/lib/mail/sendEmail";
 import { hashStringWithSalt } from "@/features/update-password/lib/hash";
 import { env } from "@/env";
 
+interface UserSelectBase {
+  id: true;
+  email: true;
+  emailVerified: true;
+  name: true;
+  firstName: true;
+  lastName: true;
+  image: true;
+  locale: true;
+  role: true;
+  banned: true;
+  banReason: true;
+  banExpires: true;
+  isPremium: true;
+  accounts: {
+    select: { providerId: true };
+  };
+}
+
+const baseUserSelect: UserSelectBase = {
+  id: true,
+  email: true,
+  emailVerified: true,
+  name: true,
+  firstName: true,
+  lastName: true,
+  image: true,
+  locale: true,
+  role: true,
+  banned: true,
+  banReason: true,
+  banExpires: true,
+  isPremium: true,
+  accounts: {
+    select: { providerId: true },
+  },
+};
+
+function isMissingTrainingModeColumnError(error: unknown): boolean {
+  const maybeError = error as { code?: string; meta?: { column?: string } };
+  return maybeError?.code === "P2022" && maybeError?.meta?.column === "user.trainingMode";
+}
+
 export const auth = betterAuth({
   // trustedOrigins: [SiteConfig.prodUrl, "localhost:3000", "https://better-auth.com", "http://localhost:3000"],
   trustedOrigins: ["*", "workoutcool://", "expo://"],
   plugins: [
     admin(),
     customSession(async ({ user, session }) => {
-      console.log("⛏️ customSession executed - fetched from DB - whole user and session data is this ->> \n");
-      const userFromDB = await prisma.user.findUnique({
-        where: {
-          id: user.id,
-        },
-        select: {
-          id: true,
-          email: true,
-          emailVerified: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-          image: true,
-          locale: true,
-          role: true,
-          banned: true,
-          banReason: true,
-          banExpires: true,
-          isPremium: true,
-          trainingMode: true,
-          accounts: {
-            select: { providerId: true },
+      let userFromDB:
+        | (Awaited<ReturnType<typeof prisma.user.findUnique>> & {
+            trainingMode?: string;
+          })
+        | null = null;
+
+      try {
+        userFromDB = await prisma.user.findUnique({
+          where: {
+            id: user.id,
           },
-        },
-      });
+          select: {
+            ...baseUserSelect,
+            trainingMode: true,
+          },
+        });
+      } catch (error) {
+        if (!isMissingTrainingModeColumnError(error)) {
+          throw error;
+        }
+
+        console.warn("Database is missing user.trainingMode column. Falling back to BEGINNER training mode.");
+
+        const legacyUser = await prisma.user.findUnique({
+          where: {
+            id: user.id,
+          },
+          select: baseUserSelect,
+        });
+
+        userFromDB = legacyUser ? { ...legacyUser, trainingMode: "BEGINNER" } : null;
+      }
 
       return {
         user: userFromDB,

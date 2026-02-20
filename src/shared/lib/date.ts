@@ -6,6 +6,17 @@ import "dayjs/locale/en";
 
 dayjs.extend(relativeTime);
 
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+function toDayjsDate(date: string | Date): dayjs.Dayjs {
+  if (typeof date === "string" && DATE_ONLY_REGEX.test(date)) {
+    const [year, month, day] = date.split("-").map(Number);
+    return dayjs(new Date(year, month - 1, day));
+  }
+
+  return dayjs(date);
+}
+
 /**
  * Default date formats for different locales
  */
@@ -38,7 +49,7 @@ const SHORT_FORMATS = {
  */
 export const formatDate = (date: string | Date, locale: string = "en", format?: string): string => {
   const defaultFormat = DEFAULT_FORMATS[locale as keyof typeof DEFAULT_FORMATS] || DEFAULT_FORMATS.en;
-  return dayjs(date)
+  return toDayjsDate(date)
     .locale(locale)
     .format(format || defaultFormat);
 };
@@ -56,7 +67,7 @@ export const getCurrentDate = (locale: string = "en"): dayjs.Dayjs => {
  */
 export const formatDateShort = (date: string | Date, locale: string = "en"): string => {
   const shortFormat = SHORT_FORMATS[locale as keyof typeof SHORT_FORMATS] || SHORT_FORMATS.en;
-  return dayjs(date)
+  return toDayjsDate(date)
     .locale(locale)
     .format(shortFormat);
 };
@@ -71,7 +82,7 @@ export const formatRelativeTime = (
 ): string | null => {
   if (!date) return null;
 
-  const target = dayjs(date).locale(locale);
+  const target = toDayjsDate(date).locale(locale);
   const now = dayjs().locale(locale);
 
 
@@ -93,5 +104,5 @@ export const formatRelativeTime = (
  * Parse date and set locale
  */
 export const parseDate = (date: string | Date, locale: string = "en"): dayjs.Dayjs => {
-  return dayjs(date).locale(locale);
+  return toDayjsDate(date).locale(locale);
 };

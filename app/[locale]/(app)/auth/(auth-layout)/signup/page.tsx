@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getI18n } from "locales/server";
+import { PortlandSignature } from "@/shared/ui/portland-signature";
 import { paths } from "@/shared/constants/paths";
 import { SignUpForm } from "@/features/auth/signup/ui/signup-form";
 
@@ -30,6 +31,8 @@ export default async function AuthSignUpPage() {
           .
         </p>
       </div>
+
+      <PortlandSignature className="mt-6" />
     </div>
   );
 }

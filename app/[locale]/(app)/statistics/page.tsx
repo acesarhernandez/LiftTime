@@ -1,6 +1,7 @@
 import React from "react";
 
 import { getI18n } from "locales/server";
+import { PortlandSignature } from "@/shared/ui/portland-signature";
 import { ExercisesBrowser } from "@/features/statistics/components/ExercisesBrowser";
 import { PremiumGate } from "@/components/ui/premium-gate";
 
@@ -41,6 +42,8 @@ export default async function StatisticsPage() {
 
       {/* Main Content */}
       <ExercisesBrowser />
+
+      <PortlandSignature className="mt-10" />
     </div>
   );
 }

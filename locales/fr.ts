@@ -24,8 +24,8 @@ export default {
     no_sessions_this_month: "Aucune séance ce mois",
     registered_members_only: "Membres inscrits uniquement",
     registered_members_description: "Créez un compte pour apparaître dans le classement et apparaître",
-    reset_timezone: "Réinitialisation Europe/Paris",
-    reset_timezone_description: "Les classements hebdo et mensuel se réinitialisent à minuit, heure de Paris",
+    reset_timezone: "Réinitialisation PST (Portland)",
+    reset_timezone_description: "Les classements hebdo et mensuels se réinitialisent à minuit en PST (Portland)",
   },
   programs: {
     available_programs: "Programmes disponibles",
@@ -1422,6 +1422,11 @@ export default {
     title: "Nouveautés",
     release_notes: "Notes",
     notes: {
+      note_2026_02_20: {
+        title: "📊 Journalisation précise + contrôles de séance intelligents",
+        content:
+          "<li>La nouvelle barre de progression fixe suit la séance et bascule sur un minuteur de repos après chaque série</li><li>Les statuts des séries et des exercices sont visibles d'un coup d'œil, avec un format compact comme Séries x/y</li><li>Les cartes d'exercices sont maintenant repliables pour limiter le scroll pendant les longues séances</li><li>Les mouvements à la barre affichent désormais une indication claire sous le poids : <strong>Barre + Disques</strong></li><li>La logique de progression est désormais prête pour les modes (Débutant/Avancé), et ignorer la donnée d'effort ne pénalise pas les recommandations</li>",
+      },
       note_2026_02_19: {
         title: "💪 Flux d'entraînement intelligent + suivi de progression",
         content:

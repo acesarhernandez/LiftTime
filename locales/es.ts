@@ -24,8 +24,8 @@ export default {
     no_sessions_this_month: "Sin sesiones este mes",
     registered_members_only: "Solo miembros registrados",
     registered_members_description: "Crea una cuenta para aparecer en la clasificación",
-    reset_timezone: "Reinicio Europa/París",
-    reset_timezone_description: "Las clasificaciones semanales y mensuales se reinician a medianoche hora de París",
+    reset_timezone: "Reinicio PST (Portland)",
+    reset_timezone_description: "Las clasificaciones semanales y mensuales se reinician a medianoche en PST (Portland)",
   },
   programs: {
     available_programs: "Programas disponibles",
@@ -528,6 +528,11 @@ export default {
     title: "Novedades",
     release_notes: "Notas",
     notes: {
+      note_2026_02_20: {
+        title: "📊 Registro preciso + controles inteligentes de sesión",
+        content:
+          "<li>La nueva barra fija de progreso muestra el avance de la sesión y cambia a un temporizador de descanso tras cada serie</li><li>Ahora puedes ver de un vistazo el estado de series y ejercicios, incluyendo progreso compacto como Series x/y</li><li>Las tarjetas de ejercicio ahora son colapsables para reducir el desplazamiento en sesiones largas</li><li>Los ejercicios con barra ahora muestran una guía clara bajo el peso: <strong>Barra + Discos</strong></li><li>La lógica de progresión ya está preparada por modo (Principiante/Avanzado), y omitir datos de esfuerzo no penaliza recomendaciones</li>",
+      },
       note_2026_02_19: {
         title: "💪 Flujo de entrenamiento más inteligente + seguimiento de progreso",
         content:

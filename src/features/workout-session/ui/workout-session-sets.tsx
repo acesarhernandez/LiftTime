@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Check, Play, ArrowRight, Trophy as TrophyIcon, Plus, Hourglass, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, Play, ArrowRight, Trophy as TrophyIcon, Plus, Hourglass, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ExerciseAttributeValueEnum } from "@prisma/client";
 
@@ -107,6 +107,7 @@ export function WorkoutSessionSets({
     updateSet,
     removeSet,
     finishSet,
+    reorderExercise,
     goToNextExercise,
     goToExercise,
     completeWorkout,
@@ -364,6 +365,11 @@ export function WorkoutSessionSets({
     void syncSessions();
   };
 
+  const handleReorderExercise = (fromIndex: number, toIndex: number) => {
+    reorderExercise(fromIndex, toIndex);
+    scheduleSync();
+  };
+
   const completeAndCelebrate = async () => {
     completeWorkout();
     await Promise.all([syncFavoriteExercises(), syncSessions()]);
@@ -481,6 +487,32 @@ export function WorkoutSessionSets({
                     </span>
                   )}
                 </div>
+                <Button
+                  aria-label="Move exercise up"
+                  className="h-8 w-8 shrink-0"
+                  disabled={idx === 0}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleReorderExercise(idx, idx - 1);
+                  }}
+                  size="icon"
+                  variant="ghost"
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  aria-label="Move exercise down"
+                  className="h-8 w-8 shrink-0"
+                  disabled={idx === session.exercises.length - 1}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleReorderExercise(idx, idx + 1);
+                  }}
+                  size="icon"
+                  variant="ghost"
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
                 <Button
                   className="h-8 w-8 shrink-0"
                   onClick={(event) => {

@@ -24,8 +24,8 @@ export default {
     no_sessions_this_month: "No sessions this month",
     registered_members_only: "Registered members only",
     registered_members_description: "Create an account to appear in the leaderboard",
-    reset_timezone: "Europe/Paris Reset",
-    reset_timezone_description: "Weekly and monthly leaderboards reset at midnight Paris time",
+    reset_timezone: "PST (Portland) Reset",
+    reset_timezone_description: "Weekly and monthly leaderboards reset at midnight PST (Portland)",
   },
   programs: {
     available_programs: "Available programs",
@@ -1397,6 +1397,11 @@ export default {
     title: "What's New",
     release_notes: "Release Notes",
     notes: {
+      note_2026_02_20: {
+        title: "📊 Precision Logging + Smart Session Controls",
+        content:
+          "<li>New sticky progress bar tracks session progress and swaps to a rest countdown after each set</li><li>Set and exercise states are now visible at a glance, including compact progress like Sets x/y</li><li>Exercise cards are now collapsible to cut scroll load during longer sessions</li><li>Barbell lifts now show a clear cue under weight input: <strong>Barbell + Plates</strong></li><li>Progression logic is now mode-ready (Beginner/Advanced), and skipped effort inputs do not penalize recommendations</li>",
+      },
       note_2026_02_19: {
         title: "💪 Smarter Workout Flow + Progress Tracking",
         content:
