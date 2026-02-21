@@ -15,9 +15,50 @@ import type { PaymentProvider } from "./providers/base-provider";
  * Easy to extend with new payment providers
  */
 export class PremiumManager {
-  private static providers: Record<string, PaymentProvider> = {
-    stripe: new StripeProvider(),
-  };
+  private static providers: Partial<Record<string, PaymentProvider>> = {};
+  private static providerInitErrors: Partial<Record<string, string>> = {};
+
+  private static getProvider(provider: string): PaymentProvider | null {
+    const providerName = provider.toLowerCase();
+    const existingProvider = this.providers[providerName];
+    if (existingProvider) {
+      return existingProvider;
+    }
+
+    if (this.providerInitErrors[providerName]) {
+      return null;
+    }
+
+    if (providerName === "stripe") {
+      try {
+        const stripeProvider = new StripeProvider();
+        this.providers[providerName] = stripeProvider;
+        return stripeProvider;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown provider initialization error";
+        this.providerInitErrors[providerName] = message;
+        console.warn(`Premium provider ${providerName} unavailable: ${message}`);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  private static getProviderError(provider: string): string {
+    const providerName = provider.toLowerCase();
+    const initError = this.providerInitErrors[providerName];
+
+    if (initError) {
+      return `Provider ${providerName} not configured: ${initError}`;
+    }
+
+    if (providerName === "stripe") {
+      return `Provider ${providerName} not configured`;
+    }
+
+    return `Provider ${providerName} not supported`;
+  }
 
   /**
    * Get available premium plans with provider mappings
@@ -81,11 +122,11 @@ export class PremiumManager {
    * Create checkout for a plan using provider mapping
    */
   static async createCheckout(userId: string, planId: string, provider: string = "stripe", region?: string): Promise<CheckoutResult> {
-    const paymentProvider = this.providers[provider];
+    const paymentProvider = this.getProvider(provider);
     if (!paymentProvider) {
       return {
         success: false,
-        error: `Provider ${provider} not supported`,
+        error: this.getProviderError(provider),
         provider: provider as any,
       };
     }
@@ -108,9 +149,9 @@ export class PremiumManager {
    * Process webhook from any provider
    */
   static async processWebhook(provider: string, payload: any, signature: string): Promise<{ success: boolean; error?: string }> {
-    const paymentProvider = this.providers[provider];
+    const paymentProvider = this.getProvider(provider);
     if (!paymentProvider) {
-      return { success: false, error: `Provider ${provider} not supported` };
+      return { success: false, error: this.getProviderError(provider) };
     }
 
     try {
@@ -192,17 +233,17 @@ export class PremiumManager {
    * Create billing portal session for subscription management
    */
   static async createBillingPortal(userId: string, provider: string = "stripe", returnUrl?: string): Promise<CheckoutResult> {
-    const paymentProvider = this.providers[provider];
+    const paymentProvider = this.getProvider(provider);
     if (!paymentProvider) {
       return {
         success: false,
-        error: `Provider ${provider} not supported`,
+        error: this.getProviderError(provider),
         provider: provider as any,
       };
     }
 
     // For Stripe, we need to find the customer ID
-    if (provider === "stripe") {
+    if (provider.toLowerCase() === "stripe") {
       const stripeProvider = paymentProvider as StripeProvider;
 
       // Get customer by user ID
@@ -230,6 +271,6 @@ export class PremiumManager {
    * Add new payment provider (for future expansion)
    */
   static addProvider(name: string, provider: PaymentProvider): void {
-    this.providers[name] = provider;
+    this.providers[name.toLowerCase()] = provider;
   }
 }
