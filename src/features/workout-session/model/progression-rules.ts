@@ -210,6 +210,14 @@ function average(values: number[]): number | null {
   return total / values.length;
 }
 
+function getRepresentativeWorkingWeight(weights: number[]): number | null {
+  if (weights.length === 0) {
+    return null;
+  }
+
+  return Math.max(...weights);
+}
+
 export function getWeightIncrement(unit: WeightUnit, equipment: ExerciseAttributeValueEnum | null): number {
   if (DUMBBELL_EQUIPMENT.has(equipment ?? ExerciseAttributeValueEnum.NA)) {
     return unit === WeightUnit.kg ? 1 : 2.5;
@@ -296,6 +304,7 @@ function evaluateWorkoutOutcome(workout: HistoricalWorkout, repRange: RepRange, 
 
   const repsValues = weightedSets.map((set) => set.reps as number);
   const convertedWeights = weightedSets.map((set) => toPreferredUnitWeight(set.weight as number, set.weightUnit, preferredUnit));
+  const representativeWeight = getRepresentativeWorkingWeight(convertedWeights);
   const rirValues = weightedSets
     .map((set) => set.rir)
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
@@ -309,7 +318,7 @@ function evaluateWorkoutOutcome(workout: HistoricalWorkout, repRange: RepRange, 
     success: successSets >= Math.ceil(setCount * 0.67),
     failure: failureSets >= Math.ceil(setCount * 0.67),
     averageReps: average(repsValues),
-    averageWeight: average(convertedWeights),
+    averageWeight: representativeWeight,
     averageRir: average(rirValues),
     hasHighPain
   };

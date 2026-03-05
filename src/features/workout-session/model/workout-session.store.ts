@@ -64,6 +64,7 @@ interface WorkoutSessionState {
   updateSet: (exerciseIndex: number, setIndex: number, data: Partial<WorkoutSet>) => void;
   removeSet: (exerciseIndex: number, setIndex: number) => void;
   finishSet: (exerciseIndex: number, setIndex: number) => void;
+  completeExerciseAndGoNext: (exerciseIndex: number) => void;
   reorderExercise: (fromIndex: number, toIndex: number) => void;
   goToNextExercise: () => void;
   goToPrevExercise: () => void;
@@ -75,6 +76,34 @@ interface WorkoutSessionState {
   getTotalVolumeInUnit: (unit: WeightUnit) => number;
   loadSessionFromLocal: () => void;
   addExerciseToSession: (exercise: ExerciseWithAttributes) => void;
+}
+
+function isExerciseFullyCompleted(exercise: WorkoutSessionExercise): boolean {
+  return exercise.sets.length > 0 && exercise.sets.every((set) => set.completed);
+}
+
+function reconcileCompletedExerciseIds(exercises: WorkoutSessionExercise[], completedExerciseIds: string[]): string[] {
+  const fullyCompletedExerciseIds = new Set(exercises.filter(isExerciseFullyCompleted).map((exercise) => exercise.id));
+  return completedExerciseIds.filter((exerciseId) => fullyCompletedExerciseIds.has(exerciseId));
+}
+
+function reorderExercisesByCompletion(
+  exercises: WorkoutSessionExercise[],
+  completedExerciseIds: string[]
+): WorkoutSessionExercise[] {
+  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+
+  const completedInOrder = completedExerciseIds
+    .map((exerciseId) => exerciseById.get(exerciseId))
+    .filter((exercise): exercise is WorkoutSessionExercise => Boolean(exercise));
+
+  const completedIdSet = new Set(completedInOrder.map((exercise) => exercise.id));
+  const remaining = exercises.filter((exercise) => !completedIdSet.has(exercise.id));
+
+  return [...completedInOrder, ...remaining].map((exercise, order) => ({
+    ...exercise,
+    order
+  }));
 }
 
 export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => ({
@@ -156,6 +185,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       trainingMode: trainingMode ?? "BEGINNER",
       status: "active",
       muscles,
+      completedExerciseIds: []
     };
 
     workoutSessionLocal.add(newSession);
@@ -381,12 +411,27 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     };
 
     const updatedExercises = session.exercises.map((ex, idx) => (idx === exIdx ? { ...ex, sets: [...ex.sets, newSet] } : ex));
+    const completedExerciseIds = reconcileCompletedExerciseIds(updatedExercises, session.completedExerciseIds ?? []);
+    const reorderedExercises = reorderExercisesByCompletion(updatedExercises, completedExerciseIds);
+    const nextCurrentExerciseIndex = reorderedExercises.findIndex((exercise) => exercise.id === currentExercise.id);
+    const safeCurrentExerciseIndex = nextCurrentExerciseIndex >= 0 ? nextCurrentExerciseIndex : 0;
 
-    workoutSessionLocal.update(session.id, { exercises: updatedExercises });
+    workoutSessionLocal.update(session.id, {
+      exercises: reorderedExercises,
+      completedExerciseIds,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    });
 
     set({
-      session: { ...session, exercises: updatedExercises },
-      currentExercise: { ...updatedExercises[exIdx] },
+      session: {
+        ...session,
+        exercises: reorderedExercises,
+        completedExerciseIds,
+        currentExerciseIndex: safeCurrentExerciseIndex
+      },
+      currentExerciseIndex: safeCurrentExerciseIndex,
+      currentExercise: reorderedExercises[safeCurrentExerciseIndex] ?? null,
+      exercisesCompleted: completedExerciseIds.length
     });
   },
 
@@ -399,12 +444,30 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
 
     const updatedSets = targetExercise.sets.map((set, idx) => (idx === setIndex ? { ...set, ...data } : set));
     const updatedExercises = session.exercises.map((ex, idx) => (idx === exerciseIndex ? { ...ex, sets: updatedSets } : ex));
+    const completedExerciseIds = reconcileCompletedExerciseIds(updatedExercises, session.completedExerciseIds ?? []);
+    const reorderedExercises = reorderExercisesByCompletion(updatedExercises, completedExerciseIds);
+    const currentExerciseId = session.exercises[get().currentExerciseIndex]?.id;
+    const nextCurrentExerciseIndex = currentExerciseId
+      ? reorderedExercises.findIndex((exercise) => exercise.id === currentExerciseId)
+      : 0;
+    const safeCurrentExerciseIndex = nextCurrentExerciseIndex >= 0 ? nextCurrentExerciseIndex : 0;
 
-    workoutSessionLocal.update(session.id, { exercises: updatedExercises });
+    workoutSessionLocal.update(session.id, {
+      exercises: reorderedExercises,
+      completedExerciseIds,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    });
 
     set({
-      session: { ...session, exercises: updatedExercises },
-      currentExercise: { ...updatedExercises[exerciseIndex] },
+      session: {
+        ...session,
+        exercises: reorderedExercises,
+        completedExerciseIds,
+        currentExerciseIndex: safeCurrentExerciseIndex
+      },
+      currentExerciseIndex: safeCurrentExerciseIndex,
+      currentExercise: reorderedExercises[safeCurrentExerciseIndex] ?? null,
+      exercisesCompleted: completedExerciseIds.length
     });
 
     // handle exercisesCompleted
@@ -415,31 +478,80 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     if (!session) return;
     const targetExercise = session.exercises[exerciseIndex];
     if (!targetExercise) return;
-    const updatedSets = targetExercise.sets.filter((_, idx) => idx !== setIndex);
+    const updatedSets = targetExercise.sets
+      .filter((_, idx) => idx !== setIndex)
+      .map((set, index) => ({
+        ...set,
+        setIndex: index
+      }));
     const updatedExercises = session.exercises.map((ex, idx) => (idx === exerciseIndex ? { ...ex, sets: updatedSets } : ex));
-    workoutSessionLocal.update(session.id, { exercises: updatedExercises });
+    const completedExerciseIds = reconcileCompletedExerciseIds(updatedExercises, session.completedExerciseIds ?? []);
+    const reorderedExercises = reorderExercisesByCompletion(updatedExercises, completedExerciseIds);
+    const currentExerciseId = session.exercises[get().currentExerciseIndex]?.id;
+    const nextCurrentExerciseIndex = currentExerciseId
+      ? reorderedExercises.findIndex((exercise) => exercise.id === currentExerciseId)
+      : 0;
+    const safeCurrentExerciseIndex = nextCurrentExerciseIndex >= 0 ? nextCurrentExerciseIndex : 0;
+
+    workoutSessionLocal.update(session.id, {
+      exercises: reorderedExercises,
+      completedExerciseIds,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    });
     set({
-      session: { ...session, exercises: updatedExercises },
-      currentExercise: { ...updatedExercises[exerciseIndex] },
+      session: {
+        ...session,
+        exercises: reorderedExercises,
+        completedExerciseIds,
+        currentExerciseIndex: safeCurrentExerciseIndex
+      },
+      currentExerciseIndex: safeCurrentExerciseIndex,
+      currentExercise: reorderedExercises[safeCurrentExerciseIndex] ?? null,
+      exercisesCompleted: completedExerciseIds.length
     });
   },
 
   finishSet: (exerciseIndex, setIndex) => {
     get().updateSet(exerciseIndex, setIndex, { completed: true });
+  },
 
-    // if has completed all sets, go to next exercise
+  completeExerciseAndGoNext: (exerciseIndex) => {
     const { session } = get();
     if (!session) return;
 
     const exercise = session.exercises[exerciseIndex];
     if (!exercise) return;
 
-    if (exercise.sets.every((set) => set.completed)) {
-      // get().goToNextExercise();
-      // update exercisesCompleted
-      const exercisesCompleted = get().exercisesCompleted;
-      set({ exercisesCompleted: exercisesCompleted + 1 });
-    }
+    const completedExerciseIds = reconcileCompletedExerciseIds(
+      session.exercises,
+      session.completedExerciseIds?.includes(exercise.id)
+        ? session.completedExerciseIds ?? []
+        : [...(session.completedExerciseIds ?? []), exercise.id]
+    );
+
+    const reorderedExercises = reorderExercisesByCompletion(session.exercises, completedExerciseIds);
+    const nextCurrentExerciseIndex = reorderedExercises.findIndex((candidate) => !completedExerciseIds.includes(candidate.id));
+    const safeCurrentExerciseIndex = nextCurrentExerciseIndex >= 0 ? nextCurrentExerciseIndex : Math.max(reorderedExercises.length - 1, 0);
+
+    const updatedSession: WorkoutSession = {
+      ...session,
+      exercises: reorderedExercises,
+      completedExerciseIds,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    };
+
+    workoutSessionLocal.update(session.id, {
+      exercises: reorderedExercises,
+      completedExerciseIds,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    });
+
+    set({
+      session: updatedSession,
+      currentExerciseIndex: safeCurrentExerciseIndex,
+      currentExercise: reorderedExercises[safeCurrentExerciseIndex] ?? null,
+      exercisesCompleted: completedExerciseIds.length
+    });
   },
 
   reorderExercise: (fromIndex, toIndex) => {
@@ -619,14 +731,28 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     if (currentId) {
       const session = workoutSessionLocal.getById(currentId);
       if (session && session.status === "active") {
+        const completedExerciseIds = reconcileCompletedExerciseIds(session.exercises, session.completedExerciseIds ?? []);
+        const reorderedExercises = reorderExercisesByCompletion(session.exercises, completedExerciseIds);
+        const desiredCurrentExerciseId = session.exercises[session.currentExerciseIndex ?? 0]?.id;
+        const reorderedCurrentExerciseIndex = desiredCurrentExerciseId
+          ? reorderedExercises.findIndex((exercise) => exercise.id === desiredCurrentExerciseId)
+          : 0;
+        const safeCurrentExerciseIndex = reorderedCurrentExerciseIndex >= 0 ? reorderedCurrentExerciseIndex : 0;
+
         set({
-          session,
+          session: {
+            ...session,
+            exercises: reorderedExercises,
+            completedExerciseIds,
+            currentExerciseIndex: safeCurrentExerciseIndex
+          },
           isWorkoutActive: true,
-          currentExerciseIndex: session.currentExerciseIndex ?? 0,
-          currentExercise: session.exercises[session.currentExerciseIndex ?? 0],
+          currentExerciseIndex: safeCurrentExerciseIndex,
+          currentExercise: reorderedExercises[safeCurrentExerciseIndex] ?? null,
           elapsedTime: session.duration ?? 0,
           isTimerRunning: false,
-          restTimer: null
+          restTimer: null,
+          exercisesCompleted: completedExerciseIds.length
         });
       }
     }
@@ -665,7 +791,10 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       return;
     }
 
-    const updatedExercises = [...session.exercises, newExercise];
+    const updatedExercises = [...session.exercises, newExercise].map((exercise, order) => ({
+      ...exercise,
+      order
+    }));
     const updatedSession = { ...session, exercises: updatedExercises };
 
     // Update local storage

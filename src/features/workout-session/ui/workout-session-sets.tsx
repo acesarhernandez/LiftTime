@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Check, Play, ArrowRight, Trophy as TrophyIcon, Plus, Hourglass, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from "lucide-react";
+import { Check, Play, ArrowRight, Trophy as TrophyIcon, Plus, Hourglass, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import confetti from "canvas-confetti";
 import { ExerciseAttributeValueEnum } from "@prisma/client";
+import { CSS } from "@dnd-kit/utilities";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { DndContext, DragEndEvent, MouseSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 
 import { useCurrentLocale, useI18n } from "locales/client";
 import TrophyImg from "@public/images/trophy.png";
@@ -15,6 +18,7 @@ import { useWorkoutSession } from "@/features/workout-session/model/use-workout-
 import { useSyncWorkoutSessions } from "@/features/workout-session/model/use-sync-workout-sessions";
 import { getCompletedSetCount, getWorkoutExerciseVisualStatus, getWorkoutSetVisualStatus } from "@/features/workout-session/lib/session-status";
 import { ExerciseVideoModal } from "@/features/workout-builder/ui/exercise-video-modal";
+import { AddExerciseModal } from "@/features/workout-builder/ui/add-exercise-modal";
 import { useSyncFavoriteExercises } from "@/features/workout-builder/hooks/use-sync-favorite-exercises";
 import { env } from "@/env";
 import { PremiumUpsellAlert } from "@/components/ui/premium-upsell-alert";
@@ -87,6 +91,31 @@ function isBarbellExercise(details: { attributes?: Array<{ attributeValue: unkno
   });
 }
 
+function SortableExerciseItem({
+  exerciseId,
+  children
+}: {
+  exerciseId: string;
+  children: (props: { attributes: any; listeners: any; isDragging: boolean }) => ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: exerciseId });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition
+  };
+
+  return (
+    <li
+      className={cn("mb-8 ml-4", isDragging && "z-20")}
+      id={`exercise-${exerciseId}`}
+      ref={setNodeRef}
+      style={style}
+    >
+      {children({ attributes, listeners, isDragging })}
+    </li>
+  );
+}
+
 export function WorkoutSessionSets({
   showCongrats,
   onCongrats,
@@ -107,6 +136,7 @@ export function WorkoutSessionSets({
     updateSet,
     removeSet,
     finishSet,
+    completeExerciseAndGoNext,
     reorderExercise,
     goToNextExercise,
     goToExercise,
@@ -114,7 +144,8 @@ export function WorkoutSessionSets({
     startRestTimer,
     cancelRestTimer,
     completeRestTimer,
-    applyBeginnerEffortGrades
+    applyBeginnerEffortGrades,
+    addExerciseToSession
   } = useWorkoutSession();
   const exerciseDetailsMap = Object.fromEntries(session?.exercises.map((ex) => [ex.id, ex]) || []);
   const [videoModal, setVideoModal] = useState<{ open: boolean; exerciseId?: string }>({ open: false });
@@ -122,11 +153,25 @@ export function WorkoutSessionSets({
   const [expandedExerciseById, setExpandedExerciseById] = useState<Record<string, boolean>>({});
   const [showEffortDialog, setShowEffortDialog] = useState(false);
   const [effortByExerciseId, setEffortByExerciseId] = useState<Partial<Record<string, BeginnerEffortGrade>>>({});
+  const [isAddWorkoutModalOpen, setIsAddWorkoutModalOpen] = useState(false);
   const { syncSessions } = useSyncWorkoutSessions();
   const { syncFavoriteExercises } = useSyncFavoriteExercises();
   const prevExerciseIndexRef = useRef<number>(currentExerciseIndex);
   const prevCompletedByExerciseIdRef = useRef<Record<string, boolean>>({});
   const syncDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 80,
+        tolerance: 6
+      }
+    }),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 4
+      }
+    })
+  );
 
   useEffect(() => {
     return () => {
@@ -159,7 +204,7 @@ export function WorkoutSessionSets({
     }
 
     const completedByExerciseId: Record<string, boolean> = {};
-    session.exercises.forEach((exercise, index) => {
+    session.exercises.forEach((exercise) => {
       const exerciseStatus = getWorkoutExerciseVisualStatus(exercise);
       const isCompleted = exerciseStatus === "COMPLETED";
       completedByExerciseId[exercise.id] = isCompleted;
@@ -170,36 +215,20 @@ export function WorkoutSessionSets({
           ...prevState,
           [exercise.id]: false
         }));
-
-        if (index === currentExerciseIndex) {
-          const nextIndex = session.exercises.findIndex((candidate, candidateIndex) => {
-            if (candidateIndex <= index) {
-              return false;
-            }
-
-            return getWorkoutExerciseVisualStatus(candidate) !== "COMPLETED";
-          });
-
-          if (nextIndex !== -1) {
-            goToExercise(nextIndex);
-            const nextExerciseId = session.exercises[nextIndex]?.id;
-            if (nextExerciseId) {
-              setExpandedExerciseById((prevState) => ({
-                ...prevState,
-                [nextExerciseId]: true
-              }));
-            }
-          }
-        }
       }
     });
 
     prevCompletedByExerciseIdRef.current = completedByExerciseId;
-  }, [session, currentExerciseIndex, goToExercise]);
+  }, [session, currentExerciseIndex]);
 
   useEffect(() => {
     if (session && currentExerciseIndex >= 0 && prevExerciseIndexRef.current !== currentExerciseIndex) {
-      const exerciseElement = document.getElementById(`exercise-${currentExerciseIndex}`);
+      const currentExerciseId = session.exercises[currentExerciseIndex]?.id;
+      if (!currentExerciseId) {
+        return;
+      }
+
+      const exerciseElement = document.getElementById(`exercise-${currentExerciseId}`);
       if (exerciseElement) {
         const scrollContainer = exerciseElement.closest(".overflow-auto");
 
@@ -370,6 +399,42 @@ export function WorkoutSessionSets({
     scheduleSync();
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!session || !over || active.id === over.id) {
+      return;
+    }
+
+    const fromIndex = session.exercises.findIndex((exercise) => exercise.id === active.id);
+    const toIndex = session.exercises.findIndex((exercise) => exercise.id === over.id);
+
+    if (fromIndex === -1 || toIndex === -1) {
+      return;
+    }
+
+    handleReorderExercise(fromIndex, toIndex);
+  };
+
+  const handleAdvanceExercise = (exerciseIndex: number, exerciseId: string, allSetsCompleted: boolean) => {
+    if (!allSetsCompleted) {
+      goToNextExercise();
+      return;
+    }
+
+    setExpandedExerciseById((prevState) => ({
+      ...prevState,
+      [exerciseId]: false
+    }));
+
+    completeExerciseAndGoNext(exerciseIndex);
+    scheduleSync();
+  };
+
+  const handleAddExerciseInSession = (exercise: unknown) => {
+    addExerciseToSession(exercise as any);
+    scheduleSync();
+  };
+
   const completeAndCelebrate = async () => {
     completeWorkout();
     await Promise.all([syncFavoriteExercises(), syncSessions()]);
@@ -415,181 +480,184 @@ export function WorkoutSessionSets({
         </div>
       )}
 
-      <ol className="relative border-l-2 ml-2 border-slate-200 dark:border-slate-700">
-        {session.exercises.map((exercise, idx) => {
-          const exerciseStatus = getWorkoutExerciseVisualStatus(exercise);
-          const completedSetCount = getCompletedSetCount(exercise);
-          const allSetsCompleted = exerciseStatus === "COMPLETED";
-          const exerciseName = locale === "fr" ? exercise.name : exercise.nameEn;
-          const lastPerformanceLabel = formatLastPerformance(exercise.id);
-          const details = exerciseDetailsMap[exercise.id];
-          const isExpanded = expandedExerciseById[exercise.id] ?? idx === currentExerciseIndex;
-          const statusMeta = EXERCISE_STATUS_META[exerciseStatus];
-          const showRirInput = supportsPerSetRir(session.trainingMode);
+      <div className="mb-4 flex justify-end">
+        <Button className="flex items-center gap-2" onClick={() => setIsAddWorkoutModalOpen(true)} variant="outline">
+          <Plus className="h-4 w-4" />
+          Add workout
+        </Button>
+      </div>
 
-          return (
-            <li
-              className={`mb-8 ml-4 ${idx !== currentExerciseIndex ? "cursor-pointer hover:opacity-80" : ""}`}
-              id={`exercise-${idx}`}
-              key={exercise.id}
-              onClick={() => handleExerciseClick(idx)}
-            >
-              <span
-                className={cn(
-                  "absolute -left-4 flex items-center justify-center w-8 h-8 rounded-full border-4 z-10",
-                  renderStepBackground(idx, allSetsCompleted)
-                )}
-              >
-                {renderStepIcon(idx, allSetsCompleted)}
-              </span>
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
+        <SortableContext items={session.exercises.map((exercise) => exercise.id)} strategy={verticalListSortingStrategy}>
+          <ol className="relative border-l-2 ml-2 border-slate-200 dark:border-slate-700">
+            {session.exercises.map((exercise, idx) => {
+              const exerciseStatus = getWorkoutExerciseVisualStatus(exercise);
+              const completedSetCount = getCompletedSetCount(exercise);
+              const allSetsCompleted = exerciseStatus === "COMPLETED";
+              const exerciseName = locale === "fr" ? exercise.name : exercise.nameEn;
+              const lastPerformanceLabel = formatLastPerformance(exercise.id);
+              const details = exerciseDetailsMap[exercise.id];
+              const isExpanded = expandedExerciseById[exercise.id] ?? idx === currentExerciseIndex;
+              const statusMeta = EXERCISE_STATUS_META[exerciseStatus];
+              const showRirInput = supportsPerSetRir(session.trainingMode);
 
-              <div className="flex items-center gap-3 ml-2 hover:opacity-80">
-                {details?.fullVideoImageUrl && (
-                  <div
-                    className="relative aspect-video max-w-24 rounded-lg overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 cursor-pointer"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setVideoModal({ open: true, exerciseId: exercise.id });
-                    }}
-                  >
-                    <Image alt={exerciseName || "Exercise image"} className="w-full h-full object-cover scale-[1.35]" height={48} src={details.fullVideoImageUrl} width={48} />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
-                      <Button className="bg-white/80" size="icon" variant="ghost">
-                        <Play className="h-4 w-4 text-blue-600" />
-                      </Button>
+              return (
+                <SortableExerciseItem exerciseId={exercise.id} key={exercise.id}>
+                  {({ attributes, listeners }) => (
+                    <div className={idx !== currentExerciseIndex ? "cursor-pointer hover:opacity-80" : ""} onClick={() => handleExerciseClick(idx)}>
+                      <span
+                        className={cn(
+                          "absolute -left-4 flex items-center justify-center w-8 h-8 rounded-full border-4 z-10",
+                          renderStepBackground(idx, allSetsCompleted)
+                        )}
+                      >
+                        {renderStepIcon(idx, allSetsCompleted)}
+                      </span>
+
+                      <div className="flex items-center gap-3 ml-2 hover:opacity-80">
+                        {details?.fullVideoImageUrl && (
+                          <div
+                            className="relative aspect-video max-w-24 rounded-lg overflow-hidden shrink-0 bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 cursor-pointer"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setVideoModal({ open: true, exerciseId: exercise.id });
+                            }}
+                          >
+                            <Image
+                              alt={exerciseName || "Exercise image"}
+                              className="w-full h-full object-cover scale-[1.35]"
+                              height={48}
+                              src={details.fullVideoImageUrl}
+                              width={48}
+                            />
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                              <Button className="bg-white/80" size="icon" variant="ghost">
+                                <Play className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div
+                          className={cn(
+                            "text-xl leading-[1.3] flex-1",
+                            idx === currentExerciseIndex
+                              ? "font-bold text-blue-600"
+                              : "text-slate-700 dark:text-slate-300 transition-colors hover:text-blue-500"
+                          )}
+                        >
+                          <span className="text-xl leading-[1.3] flex-1">{exerciseName}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusMeta.className}`}>{statusMeta.label}</span>
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400">Sets {completedSetCount}/{exercise.sets.length}</span>
+                          </div>
+                          {lastPerformanceLabel && (
+                            <span className="flex text-xs mt-1 text-emerald-600 dark:text-emerald-300">Last session: {lastPerformanceLabel}</span>
+                          )}
+                          {details?.introduction && (
+                            <span
+                              className="flex text-xs mt-1 text-slate-500 dark:text-slate-400 underline cursor-pointer hover:text-blue-600"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setVideoModal({ open: true, exerciseId: exercise.id });
+                              }}
+                            >
+                              {t("workout_builder.session.see_instructions")}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          aria-label="Drag to reorder workout"
+                          className="h-8 w-8 shrink-0 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white cursor-grab active:cursor-grabbing touch-none"
+                          onClick={(event) => event.stopPropagation()}
+                          style={{ touchAction: "none" }}
+                          type="button"
+                          {...attributes}
+                          {...listeners}
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </button>
+                        <Button
+                          className="h-8 w-8 shrink-0"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleExerciseExpanded(exercise.id, idx);
+                          }}
+                          size="icon"
+                          variant="ghost"
+                        >
+                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                      </div>
+
+                      {details && details.fullVideoUrl && videoModal.open && videoModal.exerciseId === exercise.id && (
+                        <ExerciseVideoModal
+                          exercise={details}
+                          onOpenChange={(open) => setVideoModal({ open, exerciseId: open ? exercise.id : undefined })}
+                          open={videoModal.open}
+                        />
+                      )}
+
+                      {isExpanded && idx === currentExerciseIndex && (
+                        <div className="bg-white dark:bg-transparent rounded-xl mt-6 mb-10">
+                          <div className="flex justify-start items-center gap-2">
+                            <FavoriteExerciseButton exerciseId={exercise.id} />
+                          </div>
+
+                          {exercise.sets.some((set) => set.recommendationReason) && (
+                            <div className="mt-3 mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-100">
+                              <span className="font-semibold">Recommendation notes:</span>{" "}
+                              {exercise.sets.find((set) => set.recommendationReason)?.recommendationReason}
+                            </div>
+                          )}
+
+                          <div className="space-y-10 mb-8">
+                            {exercise.sets.map((set, setIdx) => (
+                              <WorkoutSessionSet
+                                isBarbellExercise={isBarbellExercise(details)}
+                                key={set.id}
+                                onChange={(sIdx: number, data: Partial<typeof set>) => {
+                                  updateSet(idx, sIdx, data);
+                                  scheduleSync();
+                                }}
+                                onFinish={() => handleFinishSet(idx, setIdx)}
+                                onRemove={() => removeSet(idx, setIdx)}
+                                set={set}
+                                setIndex={setIdx}
+                                showRirInput={showRirInput && (set.type ?? "NORMAL") !== "WARMUP"}
+                                visualStatus={getWorkoutSetVisualStatus(set)}
+                              />
+                            ))}
+                          </div>
+
+                          <div className="flex flex-col md:flex-row gap-3 w-full mt-2 px-2">
+                            <Button
+                              aria-label="Add set"
+                              className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl border border-green-600 transition-all duration-200 active:scale-95 focus:ring-2 focus:ring-green-400"
+                              onClick={addSet}
+                            >
+                              <Plus className="h-5 w-5" />
+                              {t("workout_builder.session.add_set")}
+                            </Button>
+                            <Button
+                              aria-label="Next workout"
+                              className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl border border-blue-600 transition-all duration-200 active:scale-95 focus:ring-2 focus:ring-blue-400"
+                              onClick={() => handleAdvanceExercise(idx, exercise.id, allSetsCompleted)}
+                            >
+                              <ArrowRight className="h-5 w-5" />
+                              {allSetsCompleted ? "Next workout" : t("workout_builder.session.next_exercise")}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-
-                <div
-                  className={cn(
-                    "text-xl leading-[1.3] flex-1",
-                    idx === currentExerciseIndex
-                      ? "font-bold text-blue-600"
-                      : "text-slate-700 dark:text-slate-300 transition-colors hover:text-blue-500"
                   )}
-                >
-                  <span className="text-xl leading-[1.3] flex-1">{exerciseName}</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusMeta.className}`}>{statusMeta.label}</span>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Sets {completedSetCount}/{exercise.sets.length}</span>
-                  </div>
-                  {lastPerformanceLabel && <span className="flex text-xs mt-1 text-emerald-600 dark:text-emerald-300">Last session: {lastPerformanceLabel}</span>}
-                  {details?.introduction && (
-                    <span
-                      className="flex text-xs mt-1 text-slate-500 dark:text-slate-400 underline cursor-pointer hover:text-blue-600"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setVideoModal({ open: true, exerciseId: exercise.id });
-                      }}
-                    >
-                      {t("workout_builder.session.see_instructions")}
-                    </span>
-                  )}
-                </div>
-                <Button
-                  aria-label="Move exercise up"
-                  className="h-8 w-8 shrink-0"
-                  disabled={idx === 0}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleReorderExercise(idx, idx - 1);
-                  }}
-                  size="icon"
-                  variant="ghost"
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </Button>
-                <Button
-                  aria-label="Move exercise down"
-                  className="h-8 w-8 shrink-0"
-                  disabled={idx === session.exercises.length - 1}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleReorderExercise(idx, idx + 1);
-                  }}
-                  size="icon"
-                  variant="ghost"
-                >
-                  <ArrowDown className="h-4 w-4" />
-                </Button>
-                <Button
-                  className="h-8 w-8 shrink-0"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    toggleExerciseExpanded(exercise.id, idx);
-                  }}
-                  size="icon"
-                  variant="ghost"
-                >
-                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </div>
-
-              {details && details.fullVideoUrl && videoModal.open && videoModal.exerciseId === exercise.id && (
-                <ExerciseVideoModal
-                  exercise={details}
-                  onOpenChange={(open) => setVideoModal({ open, exerciseId: open ? exercise.id : undefined })}
-                  open={videoModal.open}
-                />
-              )}
-
-              {isExpanded && idx === currentExerciseIndex && (
-                <div className="bg-white dark:bg-transparent rounded-xl mt-6 mb-10">
-                  <div className="flex justify-start items-center gap-2">
-                    <FavoriteExerciseButton exerciseId={exercise.id} />
-                  </div>
-
-                  {exercise.sets.some((set) => set.recommendationReason) && (
-                    <div className="mt-3 mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-100">
-                      <span className="font-semibold">Recommendation notes:</span>{" "}
-                      {exercise.sets.find((set) => set.recommendationReason)?.recommendationReason}
-                    </div>
-                  )}
-
-                  <div className="space-y-10 mb-8">
-                    {exercise.sets.map((set, setIdx) => (
-                      <WorkoutSessionSet
-                        isBarbellExercise={isBarbellExercise(details)}
-                        key={set.id}
-                        onChange={(sIdx: number, data: Partial<typeof set>) => {
-                          updateSet(idx, sIdx, data);
-                          scheduleSync();
-                        }}
-                        onFinish={() => handleFinishSet(idx, setIdx)}
-                        onRemove={() => removeSet(idx, setIdx)}
-                        set={set}
-                        setIndex={setIdx}
-                        showRirInput={showRirInput && (set.type ?? "NORMAL") !== "WARMUP"}
-                        visualStatus={getWorkoutSetVisualStatus(set)}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex flex-col md:flex-row gap-3 w-full mt-2 px-2">
-                    <Button
-                      aria-label="Ajouter une série"
-                      className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl border border-green-600 transition-all duration-200 active:scale-95 focus:ring-2 focus:ring-green-400"
-                      onClick={addSet}
-                    >
-                      <Plus className="h-5 w-5" />
-                      {t("workout_builder.session.add_set")}
-                    </Button>
-                    <Button
-                      aria-label="Exercice suivant"
-                      className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl border border-blue-600 transition-all duration-200 active:scale-95 focus:ring-2 focus:ring-blue-400"
-                      onClick={goToNextExercise}
-                    >
-                      <ArrowRight className="h-5 w-5" />
-                      {t("workout_builder.session.next_exercise")}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+                </SortableExerciseItem>
+              );
+            })}
+          </ol>
+        </SortableContext>
+      </DndContext>
 
       {isWorkoutActive && (
         <div className="flex justify-center mt-8 mb-24">
@@ -657,6 +725,13 @@ export function WorkoutSessionSets({
           </div>
         </DialogContent>
       </Dialog>
+
+      <AddExerciseModal
+        isOpen={isAddWorkoutModalOpen}
+        onAddExercise={handleAddExerciseInSession}
+        onClose={() => setIsAddWorkoutModalOpen(false)}
+        selectedEquipment={[]}
+      />
 
       {env.NEXT_PUBLIC_BOTTOM_WORKOUT_SESSION_BANNER_AD_SLOT && (
         <HorizontalBottomBanner adSlot={env.NEXT_PUBLIC_BOTTOM_WORKOUT_SESSION_BANNER_AD_SLOT} />

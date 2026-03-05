@@ -68,6 +68,14 @@ export function WorkoutSessionSet({
   const setTypeLabel = set.type && set.type !== "NORMAL" ? setTypeLabels[set.type] : null;
   const statusMeta = SET_STATUS_META[visualStatus];
 
+  const getDisplayValue = (value: number | null | undefined): string | number => {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return "";
+    }
+
+    return value;
+  };
+
   const handleTypeChange = (columnIndex: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newTypes = [...types];
     newTypes[columnIndex] = e.target.value as WorkoutSetType;
@@ -87,14 +95,12 @@ export function WorkoutSessionSet({
     const currentType = types[columnIndex];
     const value = e.target.value;
 
-    if (!value) {
-      newValuesInt[columnIndex] = 0;
-      onChange(setIndex, { valuesInt: newValuesInt });
-      return;
+    if (value === "") {
+      newValuesInt[columnIndex] = Number.NaN;
+    } else {
+      const parsedValue = currentType === "WEIGHT" ? parseFloat(value) : parseInt(value, 10);
+      newValuesInt[columnIndex] = Number.isFinite(parsedValue) ? parsedValue : Number.NaN;
     }
-
-    const parsedValue = currentType === "WEIGHT" ? parseFloat(value) : parseInt(value, 10);
-    newValuesInt[columnIndex] = Number.isFinite(parsedValue) ? parsedValue : 0;
 
     const payload: Partial<WorkoutSet> = { valuesInt: newValuesInt };
     if (currentType === "WEIGHT") {
@@ -108,7 +114,7 @@ export function WorkoutSessionSet({
 
   const handleValueSecChange = (columnIndex: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValuesSec = Array.isArray(set.valuesSec) ? [...set.valuesSec] : [];
-    newValuesSec[columnIndex] = e.target.value ? parseInt(e.target.value, 10) : 0;
+    newValuesSec[columnIndex] = e.target.value === "" ? Number.NaN : parseInt(e.target.value, 10);
     onChange(setIndex, { valuesSec: newValuesSec });
   };
 
@@ -175,7 +181,7 @@ export function WorkoutSessionSet({
               pattern="[0-9]*"
               placeholder="min"
               type="number"
-              value={valuesInt[columnIndex] ?? ""}
+              value={getDisplayValue(valuesInt[columnIndex])}
             />
             <input
               className="border border-black rounded px-1 py-2 w-1/2 text-base text-center font-bold dark:bg-slate-800 dark:placeholder:text-slate-500"
@@ -186,7 +192,7 @@ export function WorkoutSessionSet({
               pattern="[0-9]*"
               placeholder="sec"
               type="number"
-              value={valuesSec[columnIndex] ?? ""}
+              value={getDisplayValue(valuesSec[columnIndex])}
             />
           </div>
         );
@@ -197,13 +203,13 @@ export function WorkoutSessionSet({
               <input
                 className="border border-black rounded px-1 py-2 w-1/2 text-base text-center font-bold dark:bg-slate-800"
                 disabled={set.completed}
+                inputMode="decimal"
                 min={0}
                 onChange={handleValueIntChange(columnIndex)}
-                pattern="[0-9]*"
                 placeholder=""
-                step="0.5"
+                step="0.1"
                 type="number"
-                value={valuesInt[columnIndex] ?? ""}
+                value={getDisplayValue(valuesInt[columnIndex])}
               />
               <div className="border border-black rounded px-1 py-2 w-1/2 text-base font-bold bg-slate-100 dark:bg-slate-800 dark:text-gray-200 h-10 flex items-center justify-center">
                 lbs
@@ -217,12 +223,13 @@ export function WorkoutSessionSet({
           <input
             className="border border-black rounded px-1 py-2 w-full text-base text-center font-bold dark:bg-slate-800"
             disabled={set.completed}
+            inputMode="numeric"
             min={0}
             onChange={handleValueIntChange(columnIndex)}
             pattern="[0-9]*"
             placeholder=""
             type="number"
-            value={valuesInt[columnIndex] ?? ""}
+            value={getDisplayValue(valuesInt[columnIndex])}
           />
         );
       case "BODYWEIGHT":

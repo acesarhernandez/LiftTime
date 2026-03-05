@@ -528,6 +528,11 @@ export default {
     title: "Novedades",
     release_notes: "Notas",
     notes: {
+      note_2026_03_05: {
+        title: "🏋️ Flujo de sesión mejorado + recomendaciones de carga más inteligentes",
+        content:
+          "<li>Ahora puedes añadir ejercicios directamente durante una sesión activa</li><li>Al terminar todas las series, la app ya no salta al instante: la tarjeta mantiene las dos acciones <strong>Añadir serie</strong> y <strong>Siguiente ejercicio</strong></li><li>Al avanzar, el ejercicio terminado se marca como completado, se colapsa y se mueve arriba según el orden de finalización</li><li>Los ejercicios activos quedan después de los completados para una cola de sesión más clara</li><li>El reordenamiento de ejercicios en sesión activa ahora funciona con arrastrar y soltar</li><li>El campo de peso ahora acepta decimales y al vaciarlo ya no se fuerza un 0 persistente</li><li>La base de recomendación ahora sigue mejor los pesos de trabajo recientes más altos, reduciendo sugerencias demasiado bajas</li>",
+      },
       note_2026_02_20: {
         title: "📊 Registro preciso + controles inteligentes de sesión",
         content:

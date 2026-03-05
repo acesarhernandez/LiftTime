@@ -1422,6 +1422,11 @@ export default {
     title: "Nouveautés",
     release_notes: "Notes",
     notes: {
+      note_2026_03_05: {
+        title: "🏋️ Flux de séance amélioré + recommandations de charge plus fiables",
+        content:
+          "<li>Vous pouvez désormais ajouter des exercices directement pendant une séance active</li><li>Quand toutes les séries sont terminées, l'app ne passe plus automatiquement tout de suite : la carte garde les deux actions <strong>Ajouter une série</strong> et <strong>Exercice suivant</strong></li><li>En passant à l'exercice suivant, l'exercice terminé est marqué comme complété, replié, puis déplacé en haut selon l'ordre de fin</li><li>Les exercices actifs restent après les exercices terminés pour une file de séance plus claire</li><li>Le réordonnancement des exercices en séance active passe au glisser-déposer</li><li>Le champ de poids accepte maintenant les décimales et vider le champ ne force plus un 0 persistant</li><li>La base de recommandation suit mieux les charges de travail récentes plus lourdes, avec moins de propositions trop basses</li>",
+      },
       note_2026_02_20: {
         title: "📊 Journalisation précise + contrôles de séance intelligents",
         content:

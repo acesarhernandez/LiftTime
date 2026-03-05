@@ -18,6 +18,7 @@ interface AddExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedEquipment: ExerciseAttributeValueEnum[];
+  onAddExercise?: (exercise: ExerciseWithAttributes, muscle: ExerciseAttributeValueEnum) => void;
 }
 
 interface ExerciseWithAttributes {
@@ -36,7 +37,7 @@ interface MuscleGroup {
   exercises: ExerciseWithAttributes[];
 }
 
-export const AddExerciseModal = ({ isOpen, onClose, selectedEquipment }: AddExerciseModalProps) => {
+export const AddExerciseModal = ({ isOpen, onClose, selectedEquipment, onAddExercise }: AddExerciseModalProps) => {
   const t = useI18n();
   const locale = useCurrentLocale();
   const [expandedMuscle, setExpandedMuscle] = useState<string | null>(null);
@@ -72,7 +73,11 @@ export const AddExerciseModal = ({ isOpen, onClose, selectedEquipment }: AddExer
   }, [isOpen, onClose]);
 
   const handleAddExercise = (exercise: ExerciseWithAttributes, muscle: ExerciseAttributeValueEnum) => {
-    addExercise(exercise, muscle);
+    if (onAddExercise) {
+      onAddExercise(exercise, muscle);
+    } else {
+      addExercise(exercise, muscle);
+    }
     onClose();
   };
 

@@ -1397,6 +1397,11 @@ export default {
     title: "What's New",
     release_notes: "Release Notes",
     notes: {
+      note_2026_03_05: {
+        title: "🏋️ Session Flow Upgrade + Smarter Load Recommendations",
+        content:
+          "<li>You can now add workouts directly while a session is active</li><li>Completing all sets no longer auto-jumps immediately; each card now keeps both actions visible: <strong>Add set</strong> or <strong>Next workout</strong></li><li>When you move to the next workout, the finished one is marked complete, collapsed, and moved to the top in completion order</li><li>Active workouts are now kept after completed workouts for a cleaner live session queue</li><li>Workout reordering inside an active session now supports drag-and-drop</li><li>Weight input now supports decimal values and clearing fields no longer forces a persistent 0</li><li>Recommendation baseline now tracks heavier recent working loads more reliably, reducing under-target weight presets</li>",
+      },
       note_2026_02_20: {
         title: "📊 Precision Logging + Smart Session Controls",
         content:

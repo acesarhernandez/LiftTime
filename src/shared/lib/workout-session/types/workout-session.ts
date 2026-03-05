@@ -17,6 +17,7 @@ export interface WorkoutSession {
   trainingGoal?: "STRENGTH" | "HYPERTROPHY" | "ENDURANCE";
   trainingMode?: TrainingMode;
   beginnerEffortByExerciseId?: Partial<Record<string, BeginnerEffortGrade>>;
+  completedExerciseIds?: string[];
   currentExerciseIndex?: number;
   isActive?: boolean;
   serverId?: string; // If synced
