@@ -188,12 +188,12 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     },
     icons: {
       icon: [
+        { url: "/logo.png", type: "image/png" },
         { url: "/images/favicon-32x32.png", sizes: "32x32", type: "image/png" },
         { url: "/images/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-        { url: "/images/favicon.ico", type: "image/x-icon" },
       ],
       apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-      shortcut: "/images/favicon.ico",
+      shortcut: "/images/favicon-32x32.png",
     },
     other: {
       "msapplication-TileColor": "#FF5722",
@@ -333,7 +333,7 @@ export default async function RootLayout({ params, children }: RootLayoutProps) 
 
         <body
           className={cn(
-            "flex items-center justify-center min-h-screen w-full max-sm:p-0 max-sm:min-h-full bg-base-200 dark:bg-[#18181b] dark:text-gray-200 antialiased",
+            "flex items-center justify-center min-h-screen min-h-[100dvh] w-full max-sm:p-0 max-sm:items-stretch bg-base-200 dark:bg-[#18181b] dark:text-gray-200 antialiased",
             "bg-hero-light dark:bg-hero-dark",
             GeistMono.variable,
             GeistSans.variable,

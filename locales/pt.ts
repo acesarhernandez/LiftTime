@@ -1401,6 +1401,11 @@ export default {
     title: "Novidades",
     release_notes: "Notas de Lançamento",
     notes: {
+      note_2026_03_08: {
+        title: "📱 Polimento de UX mobile + melhorias de fiabilidade na sessão",
+        content:
+          "<li>Os links sociais do footer agora ficam ocultos durante sessões de treino ativas para reduzir distrações</li><li>O layout mobile agora aproveita melhor a altura total, com melhor espaçamento inferior no iOS para acesso à barra de navegação</li><li>Ao adicionar um exercício no meio da sessão, a app agora busca recomendações e pré-preenche séries sugeridas quando existe histórico</li><li>A ordem padrão de colunas em séries com carga foi estabilizada para <strong>Peso e depois Repetições</strong>, com lbs pré-definido para evitar trocas de coluna</li><li>Favicon e ícones da app foram atualizados para combinar com o logo atual do LiftTime</li><li>O popup de doação/premium após o treino foi removido por agora (a base ficou pronta no código para reativação futura)</li>",
+      },
       note_2026_03_05: {
         title: "🏋️ Fluxo de sessão melhorado + recomendações de carga mais precisas",
         content:

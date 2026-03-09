@@ -86,7 +86,7 @@ export function BottomNavigation() {
       {/* Subtle background gradient */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#4F8EF7]/3 via-transparent to-[#25CB78]/3 pointer-events-none" />
 
-      <div className="relative sm:px-3 py-2">
+      <div className="relative sm:px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
         <div className="flex justify-center items-center sm:gap-2 max-w-full mx-auto">
           {tabs.map((tab) => {
             const isActive = tab.isActive;

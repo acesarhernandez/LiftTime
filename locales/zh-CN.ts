@@ -530,6 +530,11 @@ export default {
     title: "新功能",
     release_notes: "更新日志",
     notes: {
+      note_2026_03_08: {
+        title: "📱 移动端体验打磨 + 会话稳定性提升",
+        content:
+          "<li>训练进行中会隐藏底部社交链接，减少干扰</li><li>移动端布局进一步优化为更完整的全高显示，并改进 iOS 底部安全区间距，底部导航更好点按</li><li>会话中途新增动作时，现在会请求推荐，并在有历史记录时自动预填建议组</li><li>负重组默认列顺序已稳定为 <strong>重量在前、次数在后</strong>，并预设 lbs，避免字段顺序互换</li><li>favicon 与应用图标已更新为与当前 LiftTime Logo 一致</li><li>训练结束后的 donation/premium 弹窗已暂时移除（代码已保留，后续可随时重新启用）</li>",
+      },
       note_2026_03_05: {
         title: "🏋️ 会话流程升级 + 更智能的负重推荐",
         content:

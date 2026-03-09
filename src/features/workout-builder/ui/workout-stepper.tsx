@@ -11,10 +11,8 @@ import Trophy from "@public/images/trophy.png";
 import useBoolean from "@/shared/hooks/useBoolean";
 import { WorkoutSessionSets } from "@/features/workout-session/ui/workout-session-sets";
 import { WorkoutSessionHeader } from "@/features/workout-session/ui/workout-session-header";
-import { DonationModal } from "@/features/workout-session/ui/donation-modal";
 import { SuggestedWorkoutSet } from "@/features/workout-session/types/workout-set";
 import { TrainingMode } from "@/features/workout-session/types/training-mode";
-import { useDonationModal } from "@/features/workout-session/hooks/use-donation-modal";
 import { getWorkoutRecommendationAction } from "@/features/workout-session/actions/get-workout-recommendation.action";
 import { WorkoutBuilderFooter } from "@/features/workout-builder/ui/workout-stepper-footer";
 import { getExercisesByMuscleAction } from "@/features/workout-builder/actions/get-exercises-by-muscle.action";
@@ -269,7 +267,6 @@ export function WorkoutStepper() {
   };
 
   const [showCongrats, setShowCongrats] = useState(false);
-  const { showModal, openModal, closeModal } = useDonationModal();
 
   const goToProfile = () => {
     router.push("/profile");
@@ -277,10 +274,6 @@ export function WorkoutStepper() {
 
   const handleCongrats = () => {
     setShowCongrats(true);
-    // Show donation modal after congrats screen appears
-    setTimeout(() => {
-      openModal();
-    }, 400);
   };
 
   const handleToggleEquipment = (equipment: ExerciseAttributeValueEnum) => {
@@ -331,16 +324,12 @@ export function WorkoutStepper() {
 
   if (showCongrats && !isWorkoutActive) {
     return (
-      <>
-        <div className="flex flex-col items-center justify-center py-16 h-full">
-          <Image alt="Trophée" className="w-56 h-56" src={Trophy} />
-          <h2 className="text-2xl font-bold mb-2 text-center">{t("workout_builder.session.congrats")}</h2>
-          <p className="text-lg text-slate-600 mb-6">{t("workout_builder.session.congrats_subtitle")}</p>
-          <Button onClick={goToProfile}>{t("commons.go_to_profile")}</Button>
-        </div>
-        {/* Donation Modal */}
-        <DonationModal isOpen={showModal} onClose={closeModal} />
-      </>
+      <div className="flex flex-col items-center justify-center py-16 h-full">
+        <Image alt="Trophée" className="w-56 h-56" src={Trophy} />
+        <h2 className="text-2xl font-bold mb-2 text-center">{t("workout_builder.session.congrats")}</h2>
+        <p className="text-lg text-slate-600 mb-6">{t("workout_builder.session.congrats_subtitle")}</p>
+        <Button onClick={goToProfile}>{t("commons.go_to_profile")}</Button>
+      </div>
     );
   }
 

@@ -25,6 +25,11 @@ interface ActiveRestTimer {
   finishedAt?: number | null;
 }
 
+interface AddExerciseToSessionOptions {
+  suggestedSets?: SuggestedWorkoutSet[];
+  lastPerformance?: LastExercisePerformance | null;
+}
+
 interface WorkoutSessionState {
   session: WorkoutSession | null;
   progress: Record<string, WorkoutSessionProgress>;
@@ -75,7 +80,7 @@ interface WorkoutSessionState {
   getTotalVolume: () => number;
   getTotalVolumeInUnit: (unit: WeightUnit) => number;
   loadSessionFromLocal: () => void;
-  addExerciseToSession: (exercise: ExerciseWithAttributes) => void;
+  addExerciseToSession: (exercise: ExerciseWithAttributes, options?: AddExerciseToSessionOptions) => void;
 }
 
 function isExerciseFullyCompleted(exercise: WorkoutSessionExercise): boolean {
@@ -106,6 +111,50 @@ function reorderExercisesByCompletion(
   }));
 }
 
+function buildWorkoutSetsFromSuggestions(exerciseId: string, suggestedSets: SuggestedWorkoutSet[]): WorkoutSet[] {
+  return suggestedSets.map((suggestedSet, setIndex) => {
+    const types: WorkoutSetType[] = suggestedSet.types?.length ? [...suggestedSet.types] : ["WEIGHT", "REPS"];
+    const valuesInt: number[] = Array.isArray(suggestedSet.valuesInt) ? [...suggestedSet.valuesInt] : [];
+    const valuesSec: number[] = Array.isArray(suggestedSet.valuesSec) ? [...suggestedSet.valuesSec] : [];
+    const units: WorkoutSetUnit[] = Array.isArray(suggestedSet.units) ? [...suggestedSet.units] : [];
+
+    if (types.includes("WEIGHT")) {
+      const weightIndex = types.indexOf("WEIGHT");
+      if (weightIndex >= 0 && !units[weightIndex]) {
+        units[weightIndex] = "lbs";
+      }
+    }
+
+    return {
+      id: `${exerciseId}-set-${setIndex + 1}`,
+      setIndex: suggestedSet.setIndex ?? setIndex,
+      type: suggestedSet.type ?? "NORMAL",
+      types,
+      valuesInt,
+      valuesSec,
+      units,
+      recommendationReason: suggestedSet.recommendationReason,
+      rir: suggestedSet.rir ?? null,
+      painLevel: suggestedSet.painLevel ?? null,
+      completed: false
+    };
+  });
+}
+
+function buildDefaultWeightedSet(exerciseId: string): WorkoutSet {
+  return {
+    id: `${exerciseId}-set-1`,
+    setIndex: 0,
+    type: "NORMAL",
+    types: ["WEIGHT", "REPS"],
+    valuesInt: [],
+    valuesSec: [],
+    units: ["lbs"],
+    painLevel: null,
+    completed: false
+  };
+}
+
 export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => ({
   session: null,
   progress: {},
@@ -134,19 +183,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
 
       const suggestedSets = suggestedSetsByExerciseId?.[ex.id];
       if (suggestedSets?.length) {
-        const sets: WorkoutSet[] = suggestedSets.map((s, i) => ({
-          id: `${ex.id}-set-${i + 1}`,
-          setIndex: s.setIndex,
-          type: s.type ?? "NORMAL",
-          types: s.types,
-          valuesInt: s.valuesInt ?? [],
-          valuesSec: s.valuesSec ?? [],
-          units: s.units ?? [],
-          recommendationReason: s.recommendationReason,
-          rir: s.rir ?? null,
-          painLevel: s.painLevel ?? null,
-          completed: false,
-        }));
+        const sets = buildWorkoutSetsFromSuggestions(ex.id, suggestedSets);
         return {
           ...ex,
           order: idx,
@@ -160,19 +197,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
         ...ex,
         order: idx,
         lastPerformance,
-        sets: [
-          {
-            id: `${ex.id}-set-1`,
-            setIndex: 0,
-            type: "NORMAL",
-            types: ["REPS", "WEIGHT"],
-            valuesInt: [],
-            valuesSec: [],
-            units: [],
-            painLevel: null,
-            completed: false,
-          },
-        ],
+        sets: [buildDefaultWeightedSet(ex.id)],
       } as WorkoutSessionExercise;
     });
 
@@ -380,8 +405,8 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     const latestWorkingTemplate =
       [...sets].reverse().find((set) => (set.type ?? "NORMAL") !== "WARMUP") ?? sets[sets.length - 1];
 
-    let typesToCopy: WorkoutSetType[] = ["REPS", "WEIGHT"];
-    let unitsToCopy: WorkoutSetUnit[] = [];
+    let typesToCopy: WorkoutSetType[] = ["WEIGHT", "REPS"];
+    let unitsToCopy: WorkoutSetUnit[] = ["lbs"];
     let valuesIntToCopy: number[] = [];
     let valuesSecToCopy: number[] = [];
 
@@ -407,7 +432,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       valuesSec: valuesSecToCopy,
       units: unitsToCopy,
       painLevel: null,
-      completed: false,
+      completed: false
     };
 
     const updatedExercises = session.exercises.map((ex, idx) => (idx === exIdx ? { ...ex, sets: [...ex.sets, newSet] } : ex));
@@ -758,30 +783,25 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
     }
   },
 
-  addExerciseToSession: (exercise) => {
+  addExerciseToSession: (exercise, options) => {
     const { session } = get();
 
     if (!session) {
       return;
     }
 
-    // Create new exercise with default sets
+    const suggestedSets = options?.suggestedSets ?? [];
+    const sets =
+      suggestedSets.length > 0
+        ? buildWorkoutSetsFromSuggestions(exercise.id, suggestedSets)
+        : [buildDefaultWeightedSet(exercise.id)];
+
+    // Create new exercise with suggested/default sets
     const newExercise: WorkoutSessionExercise = {
       ...exercise,
       order: session.exercises.length,
-      sets: [
-        {
-          id: `${exercise.id}-set-1`,
-          setIndex: 0,
-          type: "NORMAL",
-          types: ["REPS", "WEIGHT"],
-          valuesInt: [],
-          valuesSec: [],
-          units: [],
-          painLevel: null,
-          completed: false,
-        },
-      ],
+      lastPerformance: options?.lastPerformance ?? null,
+      sets
     };
 
     // Check if exercise already exists to avoid duplicates
@@ -791,17 +811,38 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>((set, get) => 
       return;
     }
 
-    const updatedExercises = [...session.exercises, newExercise].map((exercise, order) => ({
+    const currentExerciseId = session.exercises[get().currentExerciseIndex]?.id;
+    const exercisesWithOrder = [...session.exercises, newExercise].map((exercise, order) => ({
       ...exercise,
       order
     }));
-    const updatedSession = { ...session, exercises: updatedExercises };
+    const completedExerciseIds = reconcileCompletedExerciseIds(exercisesWithOrder, session.completedExerciseIds ?? []);
+    const reorderedExercises = reorderExercisesByCompletion(exercisesWithOrder, completedExerciseIds);
+    const nextCurrentExerciseIndex = currentExerciseId
+      ? reorderedExercises.findIndex((candidate) => candidate.id === currentExerciseId)
+      : 0;
+    const safeCurrentExerciseIndex = nextCurrentExerciseIndex >= 0 ? nextCurrentExerciseIndex : 0;
+    const updatedSession = {
+      ...session,
+      exercises: reorderedExercises,
+      completedExerciseIds,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    };
 
     // Update local storage
-    workoutSessionLocal.update(session.id, { exercises: updatedExercises });
+    workoutSessionLocal.update(session.id, {
+      exercises: reorderedExercises,
+      completedExerciseIds,
+      currentExerciseIndex: safeCurrentExerciseIndex
+    });
 
     // Update state
-    set({ session: updatedSession });
+    set({
+      session: updatedSession,
+      currentExerciseIndex: safeCurrentExerciseIndex,
+      currentExercise: reorderedExercises[safeCurrentExerciseIndex] ?? null,
+      exercisesCompleted: completedExerciseIds.length
+    });
 
     console.log("🟡 [WORKOUT-SESSION] Exercise added successfully to session");
   },

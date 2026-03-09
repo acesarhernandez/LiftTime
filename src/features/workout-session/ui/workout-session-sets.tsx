@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Check, Play, ArrowRight, Trophy as TrophyIcon, Plus, Hourglass, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import confetti from "canvas-confetti";
-import { ExerciseAttributeValueEnum } from "@prisma/client";
+import { ExerciseAttributeValueEnum, WeightUnit } from "@prisma/client";
 import { CSS } from "@dnd-kit/utilities";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { DndContext, DragEndEvent, MouseSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
@@ -17,10 +17,13 @@ import { BeginnerEffortGrade, supportsPerSetRir } from "@/features/workout-sessi
 import { useWorkoutSession } from "@/features/workout-session/model/use-workout-session";
 import { useSyncWorkoutSessions } from "@/features/workout-session/model/use-sync-workout-sessions";
 import { getCompletedSetCount, getWorkoutExerciseVisualStatus, getWorkoutSetVisualStatus } from "@/features/workout-session/lib/session-status";
+import { getWorkoutRecommendationAction } from "@/features/workout-session/actions/get-workout-recommendation.action";
 import { ExerciseVideoModal } from "@/features/workout-builder/ui/exercise-video-modal";
 import { AddExerciseModal } from "@/features/workout-builder/ui/add-exercise-modal";
 import { useSyncFavoriteExercises } from "@/features/workout-builder/hooks/use-sync-favorite-exercises";
+import { useSession } from "@/features/auth/lib/auth-client";
 import { env } from "@/env";
+import { ExerciseWithAttributes } from "@/entities/exercise/types/exercise.types";
 import { PremiumUpsellAlert } from "@/components/ui/premium-upsell-alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -128,6 +131,7 @@ export function WorkoutSessionSets({
   const t = useI18n();
   const router = useRouter();
   const locale = useCurrentLocale();
+  const { data: authSession } = useSession();
   const {
     currentExerciseIndex,
     session,
@@ -430,8 +434,37 @@ export function WorkoutSessionSets({
     scheduleSync();
   };
 
-  const handleAddExerciseInSession = (exercise: unknown) => {
-    addExerciseToSession(exercise as any);
+  const handleAddExerciseInSession = async (exercise: unknown) => {
+    const exerciseCandidate = exercise as ExerciseWithAttributes;
+    const userId = authSession?.user?.id;
+    let suggestedSets;
+    let lastPerformance;
+
+    if (userId) {
+      const recommendationResult = await getWorkoutRecommendationAction({
+        userId,
+        exerciseIds: [exerciseCandidate.id],
+        fallbackMuscles: session.muscles,
+        goal: session.trainingGoal ?? "HYPERTROPHY",
+        preferredUnit: WeightUnit.lbs,
+        includeWarmupSets: true,
+        includeAdvancedRirGuidance: session.trainingMode === "ADVANCED",
+        analysisWorkoutCount: 3,
+        successStreakThreshold: 2
+      });
+
+      if (recommendationResult?.serverError) {
+        console.error("Failed to fetch recommendation for added exercise:", recommendationResult.serverError);
+      } else if (recommendationResult?.data) {
+        suggestedSets = recommendationResult.data.recommendationsByExerciseId?.[exerciseCandidate.id];
+        lastPerformance = recommendationResult.data.meta?.lastPerformanceByExerciseId?.[exerciseCandidate.id] ?? null;
+      }
+    }
+
+    addExerciseToSession(exerciseCandidate, {
+      suggestedSets,
+      lastPerformance
+    });
     scheduleSync();
   };
 

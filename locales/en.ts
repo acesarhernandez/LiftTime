@@ -1397,6 +1397,11 @@ export default {
     title: "What's New",
     release_notes: "Release Notes",
     notes: {
+      note_2026_03_08: {
+        title: "📱 Mobile UX polish + session reliability upgrades",
+        content:
+          "<li>Footer social links are now hidden during active workout sessions to reduce distractions</li><li>Mobile layout now uses improved full-height behavior, with better iOS bottom safe-area spacing for the navigation bar</li><li>Adding a workout mid-session now requests recommendations and preloads suggested sets when history exists</li><li>Default weighted set column order is now stabilized to <strong>Weight then Reps</strong>, with lbs prefilled to avoid column swap issues</li><li>Favicon and app icons were refreshed to match the current LiftTime logo</li><li>The post-workout donation/premium popup flow has been removed for now (kept ready in code for future re-enable)</li>",
+      },
       note_2026_03_05: {
         title: "🏋️ Session Flow Upgrade + Smarter Load Recommendations",
         content:
