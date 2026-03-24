@@ -154,7 +154,7 @@ jobs:
             --arg status "$PR_STATE" \
             --arg pr_url "$PR_URL" \
             --arg timestamp "$CREATED_AT" \
-            --arg footer_text "Workout Cool • PR ${{ steps.action-info.outputs.action_text }}" \
+            --arg footer_text "LiftTime • PR ${{ steps.action-info.outputs.action_text }}" \
             --arg footer_icon "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" \
             '{
               "avatar_url": $avatar_url,

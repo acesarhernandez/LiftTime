@@ -119,7 +119,7 @@ jobs:
                 ],
                 "timestamp": "${{ steps.release-info.outputs.published_at }}",
                 "footer": {
-                  "text": "Workout Cool • Release",
+                  "text": "LiftTime • Release",
                   "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
                 }
               }

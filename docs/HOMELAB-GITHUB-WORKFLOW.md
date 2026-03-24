@@ -29,7 +29,7 @@ Nothing is uploaded automatically on file save. Code is only published after `gi
 On the server, from the repo directory:
 
 ```bash
-bash scripts/homelab-manual-update.sh /path/to/workout-cool
+bash scripts/homelab-manual-update.sh /path/to/lifttime
 ```
 
 This does:
@@ -37,7 +37,7 @@ This does:
 1. `git pull` latest code
 2. Ensure Postgres container is running
 3. Run `prisma migrate deploy`
-4. Rebuild/restart `workout_cool` container
+4. Rebuild/restart the app container/service
 
 ## 3) Transfer local DB data to server DB
 
@@ -54,13 +54,13 @@ This creates a dump in `backups/` and prints the file path.
 Example:
 
 ```bash
-scp backups/workout_cool_YYYYMMDD_HHMMSS.dump user@server:/path/to/workout-cool/backups/
+scp backups/<dump-file>.dump user@server:/path/to/lifttime/backups/
 ```
 
 ### Import on server
 
 ```bash
-bash scripts/db-import-server.sh /path/to/workout-cool/backups/workout_cool_YYYYMMDD_HHMMSS.dump
+bash scripts/db-import-server.sh /path/to/lifttime/backups/<dump-file>.dump
 ```
 
 ## 4) Notes

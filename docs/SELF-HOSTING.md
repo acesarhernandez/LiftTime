@@ -56,8 +56,8 @@ ssh your-user@your-server-ip
 ```bash
 mkdir -p ~/apps
 cd ~/apps
-git clone https://github.com/Snouzy/workout-cool.git
-cd workout-cool
+git clone https://github.com/your-org/lifttime.git
+cd lifttime
 ```
 
 #### 3. Configure Environment Variables
@@ -98,11 +98,11 @@ This option automatically sets up both the application and PostgreSQL database.
 # Database Configuration (Docker Compose)
 POSTGRES_USER=my-user
 POSTGRES_PASSWORD=my-password
-POSTGRES_DB=workout-cool
+POSTGRES_DB=lifttime
 DB_HOST=postgres
 DB_PORT=5432
 
-DATABASE_URL=postgresql://username:password@postgres:5432/workout-cool
+DATABASE_URL=postgresql://username:password@postgres:5432/lifttime
 ```
 
 **Deploy:**
@@ -125,14 +125,14 @@ Use this option if you have an existing PostgreSQL database.
 
 ```bash
 # Database Configuration (External Database)
-DATABASE_URL=postgresql://username:password@your-db-host:5432/workout-cool
+DATABASE_URL=postgresql://username:password@your-db-host:5432/lifttime
 ```
 
 **Deploy:**
 
 ```bash
-docker build -t workout-cool .
-docker run -d --name workout-cool -p 3000:3000 --env-file .env workout-cool
+docker build -t lifttime .
+docker run -d --name lifttime -p 3000:3000 --env-file .env lifttime
 ```
 
 **Access:**
@@ -196,7 +196,7 @@ Use this if you're more familiar with Nginx.
 2. **Create Nginx config:**
 
     ```bash
-    sudo nano /etc/nginx/sites-available/workout-cool
+    sudo nano /etc/nginx/sites-available/lifttime
     ```
 
     Add:
@@ -216,7 +216,7 @@ Use this if you're more familiar with Nginx.
     ```
 3.  **Enable and reload:**
     ```bash
-    sudo ln -s /etc/nginx/sites-available/workout-cool /etc/nginx/sites-enabled/
+    sudo ln -s /etc/nginx/sites-available/lifttime /etc/nginx/sites-enabled/
     sudo nginx -t && sudo systemctl reload nginx
     ```
 4. **Get an HTTPS certificate:**
@@ -257,18 +257,18 @@ docker compose up -d --build
 
 ```bash
 # Start/Stop container
-docker start workout-cool
-docker stop workout-cool
+docker start lifttime
+docker stop lifttime
 
 # View logs
-docker logs -f workout-cool
+docker logs -f lifttime
 
 # Update application
 git pull
-docker build -t workout-cool .
-docker stop workout-cool
-docker rm workout-cool
-docker run -d --name workout-cool -p 3000:3000 --env-file .env workout-cool
+docker build -t lifttime .
+docker stop lifttime
+docker rm lifttime
+docker run -d --name lifttime -p 3000:3000 --env-file .env lifttime
 ```
 
 ---
@@ -280,16 +280,16 @@ docker run -d --name workout-cool -p 3000:3000 --env-file .env workout-cool
 #### Application Won't Start
 ```bash
 # Check logs
-docker compose logs workout_cool  # or docker logs workout-cool
+docker compose logs <app_service_name>  # or docker logs <app_container_name>
 
 # Verify environment variables using docker compose
-docker compose exec workout_cool env | grep DATABASE_URL  # or docker exec workout-cool env | grep DATABASE_URL
+docker compose exec <app_service_name> env | grep DATABASE_URL  # or docker exec <app_container_name> env | grep DATABASE_URL
 ```
 
 #### Database Connection Issues
 ```bash
 # Test database connectivity (Docker Compose)
-docker compose exec postgres psql -U postgres -d workout_cool -c "SELECT 1;"
+docker compose exec postgres psql -U postgres -d lifttime -c "SELECT 1;"
 
 # Check database status
 docker compose ps postgres
@@ -312,7 +312,7 @@ If you encounter issues:
 1. **Check the logs**: Use `docker compose logs` or `docker logs`
 2. **Verify configuration**: Ensure all environment variables are set correctly
 3. **Database connectivity**: Test database connection manually
-4. **Search existing issues** or create a new one on [GitHub](https://github.com/Snouzy/workout-cool/issues)
+4. **Search existing issues** or create a new one on [GitHub](https://github.com/your-org/lifttime/issues)
 5. **Join our [Discord community](https://discord.gg/NtrsUBuHUB)** for support
 
 ---
@@ -327,7 +327,7 @@ If you encounter issues:
 - [Caddy Documentation](https://caddyserver.com/docs/install)
 
 ### Community & Support
-- **GitHub**: [Repository](https://github.com/Snouzy/workout-cool) | [Issues](https://github.com/Snouzy/workout-cool/issues)
+- **GitHub**: [Repository](https://github.com/your-org/lifttime) | [Issues](https://github.com/your-org/lifttime/issues)
 - **Discord**: [Join our community](https://discord.gg/NtrsUBuHUB)
 
 ---

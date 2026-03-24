@@ -30,6 +30,9 @@ jobs:
       - name: Set image tag
         id: vars
         run: |
+          IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
           if [ "${{ github.event_name }}" = "release" ]; then
             # Get the release tag name
             RELEASE_TAG="${{ github.event.release.tag_name }}"
@@ -50,6 +53,6 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/snouzy/workout-cool:${{ steps.vars.outputs.tag }}
-            ghcr.io/snouzy/workout-cool:latest
+            ghcr.io/${{ steps.vars.outputs.image_name }}:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ steps.vars.outputs.image_name }}:latest
           platforms: linux/amd64,linux/arm64

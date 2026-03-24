@@ -142,7 +142,7 @@ jobs:
                 ],
                 "timestamp": "${CREATED_AT}",
                 "footer": {
-                  "text": "Workout Cool • Issue ${{ steps.action-info.outputs.action_text }}",
+                  "text": "LiftTime • Issue ${{ steps.action-info.outputs.action_text }}",
                   "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
                 }
               }
