@@ -340,7 +340,7 @@ export default {
       additional_support: {
         title: "Still have questions?",
         description: "Our fitness-focused community is here to help you succeed",
-        community: "Community support (discord or hello@workout.cool)",
+        community: "Community support (discord or cesarhernandezl@proton.me)",
         discussions: "Open discussions (github/discord)",
         roadmap: "Transparent roadmap (github)",
       },
@@ -1397,6 +1397,11 @@ export default {
     title: "What's New",
     release_notes: "Release Notes",
     notes: {
+      note_2026_03_24: {
+        title: "🔐 v1.5.0: Keyholder auth + cleaner auth-first experience",
+        content:
+          "<li>Added Keyholder (Authentik) sign-in integration alongside existing email/password login</li><li>Unauthenticated flow is now auth-first: a dedicated sign-in page instead of a partial in-app shell</li><li>Login UX polish: clearer copy, improved hierarchy, and refined auth page interactions</li><li>Twitter links were removed, and email shortcuts/icons now point to cesarhernandezl@proton.me</li><li>Donate, About, and Privacy content links are now hidden while new content is prepared, with underlying infrastructure kept for future reactivation</li>",
+      },
       note_2026_03_08: {
         title: "📱 Mobile UX polish + session reliability upgrades",
         content:
@@ -1440,7 +1445,7 @@ export default {
       note_2025_06_23: {
         title: "🇵🇹 Portuguese Support & Donation Banner",
         content:
-          "The app now supports <strong>Portuguese</strong>! We've also added a <em>donation banner</em> to help support the ongoing costs of the project via <a href='https://github.com/sponsors/snouzy' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>GitHub Sponsors</a> or <a href='https://ko-fi.com/workoutcool' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>Ko-fi</a>. 🙏",
+          "The app now supports <strong>Portuguese</strong>! We've also added a <em>donation banner</em> to help support ongoing project costs. 🙏",
       },
       note_2025_06_22: {
         title: "🌍 New Languages & Performance Boost!",

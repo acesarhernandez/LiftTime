@@ -13,6 +13,12 @@ export function BottomNavigation() {
   const pathname = usePathname();
   const t = useI18n();
   const locale = useCurrentLocale();
+  const isAuthPage = pathname?.includes("/auth/") ?? false;
+
+  if (isAuthPage) {
+    // Auth routes use a focused login surface without in-app tab navigation.
+    return null;
+  }
 
   const tabs = [
     {

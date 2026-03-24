@@ -5,7 +5,7 @@ export default async function AuthSignInPage() {
   return (
     <div className="space-y-6">
       <CredentialsLoginForm />
-      <PortlandSignature />
+      <PortlandSignature className="pt-4" />
     </div>
   );
 }

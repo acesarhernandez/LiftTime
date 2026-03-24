@@ -5,6 +5,8 @@ import { getSitemapData } from "@/features/programs/actions/get-sitemap-data.act
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://www.workout.cool";
   const currentDate = new Date().toISOString();
+  const includeAboutPages = false;
+  const includePrivacyPages = false;
 
   // Static routes with locale support
   const locales = ["fr", "en", "es", "pt", "ru", "zh-CN"];
@@ -88,19 +90,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.3,
     },
-    // About pages for all locales
-    {
-      url: `${baseUrl}/about`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    ...locales.map((locale) => ({
-      url: `${baseUrl}/${locale}/about`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
+    // About pages can be re-enabled when custom content is ready.
+    ...(includeAboutPages
+      ? [
+          {
+            url: `${baseUrl}/about`,
+            lastModified: currentDate,
+            changeFrequency: "monthly" as const,
+            priority: 0.7,
+          },
+          ...locales.map((locale) => ({
+            url: `${baseUrl}/${locale}/about`,
+            lastModified: currentDate,
+            changeFrequency: "monthly" as const,
+            priority: 0.7,
+          })),
+        ]
+      : []),
     // Tools pages for all locales
     {
       url: `${baseUrl}/tools`,
@@ -110,12 +116,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
 
     // Legal pages
-    {
-      url: `${baseUrl}/legal/privacy`,
-      lastModified: currentDate,
-      changeFrequency: "yearly" as const,
-      priority: 0.2,
-    },
+    ...(includePrivacyPages
+      ? [
+          {
+            url: `${baseUrl}/legal/privacy`,
+            lastModified: currentDate,
+            changeFrequency: "yearly" as const,
+            priority: 0.2,
+          },
+        ]
+      : []),
     {
       url: `${baseUrl}/legal/terms`,
       lastModified: currentDate,
@@ -130,12 +140,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     // Legal pages for all locales
     ...locales.flatMap((locale) => [
-      {
-        url: `${baseUrl}/${locale}/legal/privacy`,
-        lastModified: currentDate,
-        changeFrequency: "yearly" as const,
-        priority: 0.2,
-      },
+      ...(includePrivacyPages
+        ? [
+            {
+              url: `${baseUrl}/${locale}/legal/privacy`,
+              lastModified: currentDate,
+              changeFrequency: "yearly" as const,
+              priority: 0.2,
+            },
+          ]
+        : []),
       {
         url: `${baseUrl}/${locale}/legal/terms`,
         lastModified: currentDate,

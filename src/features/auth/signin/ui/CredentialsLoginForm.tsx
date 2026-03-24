@@ -12,6 +12,7 @@ import { paths } from "@/shared/constants/paths";
 import { ProviderButton } from "@/features/auth/ui/ProviderButton";
 import { loginSchema, LoginSchema } from "@/features/auth/signin/schema/signin.schema";
 import { useSignIn } from "@/features/auth/signin/model/useSignIn";
+import { env } from "@/env";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,6 +22,9 @@ export function CredentialsLoginForm({ className, ...props }: React.ComponentPro
   const searchParams = useSearchParams();
   const isResetSuccess = searchParams.get("reset") === "success";
   const redirectUrl = searchParams.get("redirect");
+  const isGoogleEnabled = env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED;
+  const isAuthentikEnabled = env.NEXT_PUBLIC_AUTH_AUTHENTIK_ENABLED;
+  const isAnySocialProviderEnabled = isGoogleEnabled || isAuthentikEnabled;
 
   const { signIn } = useSignIn();
 
@@ -41,13 +45,23 @@ export function CredentialsLoginForm({ className, ...props }: React.ComponentPro
 
       <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit(onSubmit)} {...props}>
         <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-bold">{t("commons.login_to_your_account_title")}</h1>
-          <p className="text-muted-foreground text-balance text-sm">{t("commons.login_to_your_account_subtitle")}</p>
+          <h1 className="text-2xl font-bold">Welcome back</h1>
+          <p className="text-muted-foreground text-balance text-sm">
+            Save workouts, sync progress, and pick up where you left off.
+          </p>
         </div>
         <div className="grid gap-6">
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" placeholder="m@example.com" type="email" {...register("email")} aria-invalid={!!errors.email} />
+            <Input
+              aria-invalid={!!errors.email}
+              autoComplete="email"
+              autoFocus
+              id="email"
+              placeholder="m@example.com"
+              type="email"
+              {...register("email")}
+            />
             {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
           </div>
           <div className="grid gap-2">
@@ -57,30 +71,37 @@ export function CredentialsLoginForm({ className, ...props }: React.ComponentPro
                 {t("commons.password_forgot")}
               </a>
             </div>
-            <Input id="password" type="password" {...register("password")} aria-invalid={!!errors.password} />
+            <Input aria-invalid={!!errors.password} autoComplete="current-password" id="password" type="password" {...register("password")} />
             {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
           </div>
-          <Button className="w-full" disabled={isSubmitting} size="large" type="submit">
+          <Button className="w-full font-semibold shadow-sm hover:shadow-md" disabled={isSubmitting} size="large" type="submit">
             {isSubmitting ? t("commons.connecting") : t("commons.login")}
           </Button>
         </div>
       </form>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background text-muted-foreground px-2">{t("commons.or")}</span>
-        </div>
-      </div>
+      {isAnySocialProviderEnabled && (
+        <>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background text-muted-foreground px-2">{t("commons.or")}</span>
+            </div>
+          </div>
 
-      <ProviderButton action="signin" className="w-full" providerId="google" variant="outline" />
+          <div className="flex flex-col gap-2">
+            {isGoogleEnabled && <ProviderButton action="signin" className="w-full" providerId="google" variant="outline" />}
+            {isAuthentikEnabled && <ProviderButton action="signin" className="w-full" providerId="authentik" variant="outline" />}
+          </div>
+        </>
+      )}
 
       <div className="text-center text-sm">
         {t("commons.dont_have_account")}{" "}
-        <Link 
-          className="underline underline-offset-4" 
+        <Link
+          className="underline underline-offset-4"
           href={`/${paths.signUp}${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
         >
           {t("commons.signup")}

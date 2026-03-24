@@ -1,4 +1,4 @@
-import { admin, customSession } from "better-auth/plugins";
+import { admin, customSession, genericOAuth } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { betterAuth } from "better-auth";
@@ -98,6 +98,43 @@ export const auth = betterAuth({
         session,
       };
     }),
+    ...(env.AUTHENTIK_CLIENT_ID && env.AUTHENTIK_CLIENT_SECRET && env.AUTHENTIK_DISCOVERY_URL
+      ? [
+          genericOAuth({
+            config: [
+              {
+                providerId: "authentik",
+                clientId: env.AUTHENTIK_CLIENT_ID,
+                clientSecret: env.AUTHENTIK_CLIENT_SECRET,
+                discoveryUrl: env.AUTHENTIK_DISCOVERY_URL,
+                scopes: ["openid", "profile", "email"],
+                mapProfileToUser: async (profile) => {
+                  const email = typeof profile.email === "string" ? profile.email : null;
+
+                  if (!email) {
+                    throw new Error("Authentik profile is missing email.");
+                  }
+
+                  const firstName = typeof profile.given_name === "string" ? profile.given_name : "";
+                  const lastName = typeof profile.family_name === "string" ? profile.family_name : "";
+                  const preferredUsername =
+                    typeof profile.preferred_username === "string" ? profile.preferred_username : "";
+                  const name = [firstName, lastName].filter(Boolean).join(" ") || preferredUsername || email;
+
+                  return {
+                    email,
+                    name,
+                    firstName,
+                    lastName,
+                    image: typeof profile.picture === "string" ? profile.picture : undefined,
+                    role: UserRole.user,
+                  };
+                },
+              },
+            ],
+          }),
+        ]
+      : []),
     nextCookies(),
   ],
   user: {
@@ -178,19 +215,23 @@ export const auth = betterAuth({
     enabled: true,
   },
   socialProviders: {
-    google: {
-      enabled: true,
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      mapProfileToUser: async (profile) => {
-        return {
-          ...profile,
-          email: profile.email,
-          firstName: profile.given_name,
-          lastName: profile.family_name,
-          role: UserRole.user,
-        };
-      },
-    },
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            enabled: true,
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            mapProfileToUser: async (profile) => {
+              return {
+                ...profile,
+                email: profile.email,
+                firstName: profile.given_name,
+                lastName: profile.family_name,
+                role: UserRole.user,
+              };
+            },
+          },
+        }
+      : {}),
   },
 });

@@ -1,8 +1,5 @@
-import Link from "next/link";
-
 import { getI18n } from "locales/server";
 import { PortlandSignature } from "@/shared/ui/portland-signature";
-import { paths } from "@/shared/constants/paths";
 import { SignUpForm } from "@/features/auth/signup/ui/signup-form";
 
 export const metadata = {
@@ -21,16 +18,6 @@ export default async function AuthSignUpPage() {
       </div>
 
       <SignUpForm />
-
-      <div className="text-muted-foreground mt-6 text-center text-sm">
-        <p>
-          {t("register_terms")}{" "}
-          <Link className="font-medium text-primary underline-offset-4 hover:underline" href={paths.privacy}>
-            {t("register_privacy")}
-          </Link>{" "}
-          .
-        </p>
-      </div>
 
       <PortlandSignature className="mt-6" />
     </div>

@@ -367,7 +367,7 @@ export default {
       additional_support: {
         title: "Ainda tem perguntas?",
         description: "A nossa comunidade focada no fitness está aqui para ajudar-lhe a ter sucesso",
-        community: "Suporte comunitário (discord ou hello@workout.cool)",
+        community: "Suporte comunitário (discord ou cesarhernandezl@proton.me)",
         discussions: "Discussões abertas (github/discord)",
         roadmap: "Roadmap transparente (github)",
       },
@@ -1401,6 +1401,11 @@ export default {
     title: "Novidades",
     release_notes: "Notas de Lançamento",
     notes: {
+      note_2026_03_24: {
+        title: "🔐 v1.5.0: Auth com Keyholder + experiência de acesso mais limpa",
+        content:
+          "<li>Integração de login com Keyholder (Authentik) junto com a autenticação existente por email/palavra-passe</li><li>O fluxo sem sessão agora é auth-first: uma página de login dedicada no lugar de uma experiência parcial dentro da app</li><li>Melhorias de UX no login: texto mais claro, hierarquia visual melhor e interações refinadas na página de autenticação</li><li>Os links de Twitter foram removidos e os atalhos/ícones de email agora apontam para cesarhernandezl@proton.me</li><li>Os links de conteúdo de Doar, Sobre e Privacidade estão temporariamente ocultos enquanto o novo conteúdo é preparado, mantendo a infraestrutura para reativação futura</li>",
+      },
       note_2026_03_08: {
         title: "📱 Polimento de UX mobile + melhorias de fiabilidade na sessão",
         content:
@@ -1444,7 +1449,7 @@ export default {
       note_2025_06_23: {
         title: "🇵🇹 Suporte Português & Banner de Doação",
         content:
-          "A app agora suporta <strong>português</strong>! Também adicionámos um <em>banner de doação</em> para ajudar a suportar os custos do projeto via <a href='https://github.com/sponsors/snouzy' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>GitHub Sponsors</a> ou <a href='https://ko-fi.com/workoutcool' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>Ko-fi</a>. 🙏",
+          "A app agora suporta <strong>português</strong>! Também adicionámos um <em>banner de doação</em> para ajudar a suportar os custos do projeto. 🙏",
       },
       note_2025_06_22: {
         title: "🌍 Novos idiomas e melhorias de desempenho!",

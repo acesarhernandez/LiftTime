@@ -7,6 +7,7 @@ import { useI18n } from "locales/client";
 import { paths } from "@/shared/constants/paths";
 import { ProviderButton } from "@/features/auth/ui/ProviderButton";
 import { useSignUp } from "@/features/auth/signup/model/useSignUp";
+import { env } from "@/env";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, useZodForm } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,9 @@ export const SignUpForm = () => {
   const t = useI18n();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect");
+  const isGoogleEnabled = env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED;
+  const isAuthentikEnabled = env.NEXT_PUBLIC_AUTH_AUTHENTIK_ENABLED;
+  const isAnySocialProviderEnabled = isGoogleEnabled || isAuthentikEnabled;
 
   const form = useZodForm({ schema: signUpSchema });
 
@@ -120,18 +124,23 @@ export const SignUpForm = () => {
           {t("commons.submit")}
         </Button>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+        {isAnySocialProviderEnabled && (
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background text-muted-foreground px-2">{t("commons.or")}</span>
+            </div>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background text-muted-foreground px-2">{t("commons.or")}</span>
-          </div>
-        </div>
+        )}
       </Form>
-      <div className="mt-2 flex flex-col gap-2">
-        <ProviderButton action="signup" providerId="google" variant="default" />
-      </div>
+      {isAnySocialProviderEnabled && (
+        <div className="mt-2 flex flex-col gap-2">
+          {isGoogleEnabled && <ProviderButton action="signup" providerId="google" variant="default" />}
+          {isAuthentikEnabled && <ProviderButton action="signup" providerId="authentik" variant="default" />}
+        </div>
+      )}
       
       <div className="mt-4 text-center text-sm">
         {t("commons.already_have_account")}{" "}

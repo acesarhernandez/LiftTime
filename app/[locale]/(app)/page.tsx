@@ -1,8 +1,12 @@
 import React from "react";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 import { getServerUrl } from "@/shared/lib/server-url";
+import { paths } from "@/shared/constants/paths";
 import { SiteConfig } from "@/shared/config/site-config";
 import { WorkoutStepper } from "@/features/workout-builder";
+import { auth } from "@/features/auth/lib/better-auth";
 
 import type { Metadata } from "next";
 
@@ -48,7 +52,17 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   };
 }
 
-export default async function HomePage() {
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const headerStore = await headers();
+  const session = await auth.api.getSession({ headers: headerStore });
+
+  // Auth-first experience: guests are redirected to a dedicated sign-in page.
+  if (!session?.user) {
+    const redirectTarget = `/${locale}`;
+    redirect(`/${locale}/${paths.signIn}?redirect=${encodeURIComponent(redirectTarget)}`);
+  }
+
   return (
     <div className="bg-background text-foreground relative flex flex-col h-full">
       <WorkoutStepper />

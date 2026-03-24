@@ -368,7 +368,7 @@ export default {
       additional_support: {
         title: "У вас все еще есть вопросы?",
         description: "Наша сообщество фитнеса здесь, чтобы помочь вам достичь успеха",
-        community: "Поддержка сообщества (дискорд или hello@workout.cool)",
+        community: "Поддержка сообщества (дискорд или cesarhernandezl@proton.me)",
         discussions: "Открытые обсуждения (github/discord)",
         roadmap: "Прозрачный план (github)",
       },
@@ -1388,6 +1388,11 @@ export default {
     title: "Что нового",
     release_notes: "Заметки о выпуске",
     notes: {
+      note_2026_03_24: {
+        title: "🔐 v1.5.0: Авторизация Keyholder + более чистый auth-first вход",
+        content:
+          "<li>Добавлена интеграция входа через Keyholder (Authentik) вместе с существующим входом по email/паролю</li><li>Неавторизованный поток теперь полностью auth-first: отдельная страница входа вместо частичного интерфейса приложения</li><li>Улучшен UX входа: более понятные тексты, лучше визуальная иерархия и доработанные взаимодействия на auth-странице</li><li>Ссылки на Twitter удалены, а email-иконки и быстрые ссылки теперь ведут на cesarhernandezl@proton.me</li><li>Ссылки с контентом Donation, About и Privacy временно скрыты до подготовки нового контента, при этом инфраструктура сохранена для последующего включения</li>",
+      },
       note_2026_03_08: {
         title: "📱 Полировка мобильного UX + повышение надежности сессий",
         content:
@@ -1431,7 +1436,7 @@ export default {
       note_2025_06_23: {
         title: "🇵🇹 Поддержка Португальского & Баннер Пожертвований",
         content:
-          "Приложение теперь поддерживает <strong>португальский язык</strong>! Мы также добавили <em>баннер пожертвований</em>, чтобы помочь покрыть расходы проекта через <a href='https://github.com/sponsors/snouzy' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>GitHub Sponsors</a> или <a href='https://ko-fi.com/workoutcool' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>Ko-fi</a>. 🙏",
+          "Приложение теперь поддерживает <strong>португальский язык</strong>! Мы также добавили <em>баннер пожертвований</em>, чтобы помочь покрыть расходы проекта. 🙏",
       },
       note_2025_06_22: {
         title: "🌍 Новые языки и улучшение производительности!",

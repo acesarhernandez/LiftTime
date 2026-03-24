@@ -1,5 +1,4 @@
 import React from "react";
-import Link from "next/link";
 
 import { useI18n } from "locales/client";
 import { cn } from "@/shared/lib/utils";
@@ -22,23 +21,7 @@ export const DonationAlert = ({ className }: DonationAlertProps) => {
     >
       <AlertDescription className="flex items-center gap-1 italic text-base">
         <span className="whitespace-pre-line">
-          {t("donation_alert.title")}{" "}
-          <Link
-            className="font-medium text-gray-900 underline hover:text-gray-700 dark:text-gray-200"
-            href="https://ko-fi.com/workoutcool"
-            target="_blank"
-          >
-            Ko-fi
-          </Link>{" "}
-          or{" "}
-          <Link
-            className="font-medium text-gray-900 underline hover:text-gray-700 dark:text-gray-200"
-            href="https://github.com/sponsors/snouzy"
-            target="_blank"
-          >
-            GitHub Sponsors
-          </Link>
-          .
+          {t("donation_alert.title")}
         </span>
       </AlertDescription>
     </Alert>

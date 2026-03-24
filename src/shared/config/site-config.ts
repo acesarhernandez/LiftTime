@@ -26,12 +26,12 @@ export const SiteConfig = {
   },
   email: {
     from: "LiftTime <hello@workout.cool>",
-    contact: "hello@workout.cool",
+    contact: "cesarhernandezl@proton.me",
   },
   maker: {
     image: "https://workout.cool/images/me/twitter-en.jpg",
     website: "https://workout.cool",
-    twitter: "https://twitter.com/workout_cool",
+    twitter: "",
     name: "LiftTime",
   },
   auth: {
@@ -42,7 +42,7 @@ export const SiteConfig = {
       width: 1200,
       height: 630,
     },
-    twitterHandle: "@snouzy_biceps",
+    twitterHandle: "",
     applicationName: "LiftTime",
     category: "fitness",
     classification: "Fitness & Health",

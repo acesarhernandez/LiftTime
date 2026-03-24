@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createEnv } from "@t3-oss/env-nextjs";
 
 const booleanString = z.enum(["true", "false"]).transform((val) => val === "true");
+const optionalUrlString = z.preprocess((val) => (val === "" ? undefined : val), z.string().url().optional());
 
 /**
  * This is the schema for the environment variables.
@@ -12,8 +13,11 @@ export const env = createEnv({
   server: {
     BETTER_AUTH_URL: z.string().url(),
     DATABASE_URL: z.string().url(),
-    GOOGLE_CLIENT_ID: z.string().min(1),
-    GOOGLE_CLIENT_SECRET: z.string().min(1),
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    AUTHENTIK_CLIENT_ID: z.string().optional(),
+    AUTHENTIK_CLIENT_SECRET: z.string().optional(),
+    AUTHENTIK_DISCOVERY_URL: optionalUrlString,
     NODE_ENV: z.enum(["development", "production", "test"]),
     BETTER_AUTH_SECRET: z.string().min(1),
     OPENPANEL_SECRET_KEY: z.string().optional(),
@@ -53,6 +57,8 @@ export const env = createEnv({
     NEXT_PUBLIC_STRIPE_PRICE_MONTHLY_CN: z.string().optional(),
     NEXT_PUBLIC_STRIPE_PRICE_YEARLY_CN: z.string().optional(),
     NEXT_PUBLIC_SHOW_ADS: booleanString.optional(),
+    NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: booleanString.optional().default("true"),
+    NEXT_PUBLIC_AUTH_AUTHENTIK_ENABLED: booleanString.optional().default("false"),
     NEXT_PUBLIC_AD_CLIENT: z.string().optional(),
     NEXT_PUBLIC_VERTICAL_LEFT_BANNER_AD_SLOT: z.string().optional(),
     NEXT_PUBLIC_VERTICAL_RIGHT_BANNER_AD_SLOT: z.string().optional(),
@@ -120,6 +126,8 @@ export const env = createEnv({
     NEXT_PUBLIC_STRIPE_PRICE_MONTHLY_CN: process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY_CN,
     NEXT_PUBLIC_STRIPE_PRICE_YEARLY_CN: process.env.NEXT_PUBLIC_STRIPE_PRICE_YEARLY_CN,
     NEXT_PUBLIC_SHOW_ADS: process.env.NEXT_PUBLIC_SHOW_ADS,
+    NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: process.env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED,
+    NEXT_PUBLIC_AUTH_AUTHENTIK_ENABLED: process.env.NEXT_PUBLIC_AUTH_AUTHENTIK_ENABLED,
     NEXT_PUBLIC_AD_CLIENT: process.env.NEXT_PUBLIC_AD_CLIENT,
     NEXT_PUBLIC_VERTICAL_LEFT_BANNER_AD_SLOT: process.env.NEXT_PUBLIC_VERTICAL_LEFT_BANNER_AD_SLOT,
     NEXT_PUBLIC_VERTICAL_RIGHT_BANNER_AD_SLOT: process.env.NEXT_PUBLIC_VERTICAL_RIGHT_BANNER_AD_SLOT,

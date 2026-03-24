@@ -11,6 +11,11 @@ interface DonationModalProps {
   onClose: () => void;
 }
 
+const DONATION_PROVIDER_URLS = {
+  kofi: "",
+  githubSponsors: "",
+} as const;
+
 export function DonationModal({ isOpen, onClose }: DonationModalProps) {
   const t = useI18n();
   const modalRef = useRef<HTMLDialogElement>(null);
@@ -39,12 +44,16 @@ export function DonationModal({ isOpen, onClose }: DonationModalProps) {
   }, [onClose]);
 
   const handleDonateKofi = () => {
-    window.open("https://ko-fi.com/workoutcool", "_blank");
+    if (DONATION_PROVIDER_URLS.kofi) {
+      window.open(DONATION_PROVIDER_URLS.kofi, "_blank");
+    }
     onClose();
   };
 
   const handleDonateGitHub = () => {
-    window.open("https://github.com/sponsors/snouzy", "_blank");
+    if (DONATION_PROVIDER_URLS.githubSponsors) {
+      window.open(DONATION_PROVIDER_URLS.githubSponsors, "_blank");
+    }
     onClose();
   };
 
@@ -113,13 +122,9 @@ export function DonationModal({ isOpen, onClose }: DonationModalProps) {
             <p className="text-xs text-center text-green-700 dark:text-green-400 mt-2 font-medium">{t("donation_modal.impact_footer")}</p>
           </div>
 
-          <iframe
-            height="700"
-            id="kofiframe"
-            src="https://ko-fi.com/workoutcool/?hidefeed=true&widget=true&embed=true&preview=true"
-            style={{ border: "none", width: "100%", padding: "4px" }}
-            title="workoutcool"
-          ></iframe>
+          <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-4 text-center text-sm text-slate-500 dark:text-slate-400">
+            Donation destinations are temporarily hidden while we prepare updated links.
+          </div>
         </div>
 
         {/* Actions */}
@@ -129,6 +134,7 @@ export function DonationModal({ isOpen, onClose }: DonationModalProps) {
             <div className="flex gap-2 flex-col sm:flex-row">
               <Button
                 className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white border-0"
+                disabled={!DONATION_PROVIDER_URLS.kofi}
                 onClick={handleDonateKofi}
                 size="large"
               >
@@ -137,6 +143,7 @@ export function DonationModal({ isOpen, onClose }: DonationModalProps) {
               </Button>
               <Button
                 className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0"
+                disabled={!DONATION_PROVIDER_URLS.githubSponsors}
                 onClick={handleDonateGitHub}
                 size="large"
               >

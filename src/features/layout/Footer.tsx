@@ -1,6 +1,7 @@
 "use client";
 
-import { Github, Mail, Twitter } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Github, Mail } from "lucide-react";
 
 import { useI18n, TFunction } from "locales/client";
 import { cn } from "@/shared/lib/utils";
@@ -18,12 +19,7 @@ const SOCIAL_LINKS = [
     label: "GitHub",
   },
   {
-    href: "https://x.com/snouzy_biceps",
-    icon: Twitter,
-    label: "Twitter/X",
-  },
-  {
-    href: "mailto:coolworkout6@gmail.com",
+    href: "mailto:cesarhernandezl@proton.me",
     icon: Mail,
     label: "Email",
   },
@@ -35,14 +31,22 @@ const SOCIAL_LINKS = [
 ];
 
 const NAVIGATION = (t: TFunction) => [
-  { name: t("commons.donate"), href: "https://ko-fi.com/workoutcool" },
-  { name: t("commons.about"), href: "/about" },
-  { name: t("commons.privacy"), href: paths.privacy, hideOnMobile: true },
+  // Kept as internal infrastructure, intentionally hidden until custom content is ready.
+  { name: t("commons.donate"), href: paths.root, hidden: true },
+  { name: t("commons.about"), href: "/about", hidden: true },
+  { name: t("commons.privacy"), href: paths.privacy, hideOnMobile: true, hidden: true },
 ];
 
 export const Footer = () => {
+  const pathname = usePathname();
   const t = useI18n();
   const { isWorkoutActive } = useWorkoutSession();
+  const isAuthPage = pathname?.includes("/auth/") ?? false;
+
+  if (isAuthPage) {
+    // Auth routes have their own branded footer content under the auth card.
+    return null;
+  }
 
   return (
     <footer
@@ -73,7 +77,9 @@ export const Footer = () => {
 
           {/* Navigation Links */}
           <div className="flex sm:flex-row gap-1 sm:gap-3 text-center text-gray-700 dark:text-gray-300">
-            {NAVIGATION(t).map(({ name, href, hideOnMobile }) => (
+            {NAVIGATION(t)
+              .filter((item) => !item.hidden)
+              .map(({ name, href, hideOnMobile }) => (
               <Link
                 className={cn(
                   "hover:underline hover:text-blue-500 dark:hover:text-blue-400 text-xs sm:text-sm",

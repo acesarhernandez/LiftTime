@@ -368,7 +368,7 @@ export default {
       additional_support: {
         title: "还有问题吗？",
         description: "我们的健身社区在这里帮助您成功",
-        community: "社区支持（Discord 或 hello@workout.cool）",
+        community: "社区支持（Discord 或 cesarhernandezl@proton.me）",
         discussions: "开放讨论（github/discord）",
         roadmap: "透明路线图（github）",
       },
@@ -530,6 +530,11 @@ export default {
     title: "新功能",
     release_notes: "更新日志",
     notes: {
+      note_2026_03_24: {
+        title: "🔐 v1.5.0：Keyholder 登录 + 更纯粹的认证优先体验",
+        content:
+          "<li>新增 Keyholder（Authentik）登录，同时保留原有邮箱/密码登录方式</li><li>未登录流程改为 auth-first：使用专用登录页，不再展示“半进入应用”的体验</li><li>登录 UX 进一步打磨：文案更清晰、层级更明确、认证页交互更精炼</li><li>已移除 Twitter 链接，邮件快捷入口/图标现统一指向 cesarhernandezl@proton.me</li><li>Donate、About、Privacy 的内容链接已临时隐藏，后续内容重做时可直接基于现有基础设施重新启用</li>",
+      },
       note_2026_03_08: {
         title: "📱 移动端体验打磨 + 会话稳定性提升",
         content:
@@ -572,7 +577,7 @@ export default {
       note_2025_06_23: {
         title: "🇵🇹 葡萄牙语支持和捐赠横幅",
         content:
-          "应用现已支持<strong>葡萄牙语</strong>！我们还添加了<em>捐赠横幅</em>以帮助通过<a href='https://github.com/sponsors/snouzy' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>GitHub Sponsors</a>或<a href='https://ko-fi.com/workoutcool' target='_blank' rel='noopener' class='text-blue-500 hover:underline'>Ko-fi</a>支持项目的持续成本。🙏",
+          "应用现已支持<strong>葡萄牙语</strong>！我们还添加了<em>捐赠横幅</em>以帮助支持项目的持续成本。🙏",
       },
       note_2025_06_22: {
         title: "🌍 新语言支持和性能提升！",
