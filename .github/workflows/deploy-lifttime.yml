@@ -1,0 +1,32 @@
+name: Deploy LiftTime
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-lifttime-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 192.168.86.24
+          username: cesar
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          fingerprint: SHA256:xBVmullfryfyKLzqEE+o0m7c0z7KznzT3J5uL4Agi/4
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            cd /home/cesar/docker/lifttime
+            git pull origin main
+            docker compose up -d --build
