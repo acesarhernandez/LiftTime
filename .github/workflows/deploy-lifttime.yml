@@ -10,10 +10,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    runs-on: self-hosted
+    permissions:
+      contents: read
+
+    steps:
+      - name: Validate LiftTime
+        run: |
+          set -e
+
+          echo "Navigating to project..."
+          cd /home/cesar/docker/lifttime
+
+          echo "Pulling latest code..."
+          git pull origin main
+
+          echo "Validating Docker Compose..."
+          docker compose config > /dev/null
+
+          echo "Testing Docker build..."
+          docker compose build
+
+          echo "Validation successful"
+
   deploy:
     runs-on: self-hosted
     permissions:
       contents: read
+    needs: validate
 
     steps:
       - name: Deploy LiftTime
