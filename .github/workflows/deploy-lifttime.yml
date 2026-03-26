@@ -32,7 +32,7 @@ jobs:
           echo "Testing Docker build..."
           docker compose build
 
-          echo "Validation successful"
+          echo "Validation successful - test run"
 
   deploy:
     runs-on: self-hosted
