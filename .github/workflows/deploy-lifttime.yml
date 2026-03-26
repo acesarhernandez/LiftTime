@@ -51,7 +51,7 @@ jobs:
           echo "Pulling latest code..."
           git pull origin main
 
-          echo "Rebuilding and starting containers..."
-          docker compose up -d --build
+          echo "Starting containers..."
+          docker compose up -d
 
           echo "Deployment complete"
