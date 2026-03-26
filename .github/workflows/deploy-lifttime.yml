@@ -32,7 +32,7 @@ jobs:
           echo "Testing Docker build..."
           docker compose build
 
-          echo "Validation successful - test run"
+          echo "Validation successful"
 
   deploy:
     runs-on: self-hosted
@@ -53,5 +53,11 @@ jobs:
 
           echo "Starting containers..."
           docker compose up -d
+
+          echo "Waiting for app to be ready..."
+          sleep 10
+          
+          echo "Verifying app is responding..."
+          curl -f http://localhost:3012/en > /dev/null
 
           echo "Deployment complete"
