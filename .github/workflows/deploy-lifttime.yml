@@ -55,9 +55,16 @@ jobs:
           docker compose up -d
 
           echo "Waiting for app to be ready..."
-          sleep 10
-          
-          echo "Verifying app is responding..."
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -f http://localhost:3012/en > /dev/null; then
+              echo "App responded successfully"
+              break
+            fi
+            echo "App not ready yet, retrying in 2 seconds..."
+            sleep 2
+          done
+
+          echo "Final verification..."
           curl -f http://localhost:3012/en > /dev/null
 
           echo "Deployment complete"
