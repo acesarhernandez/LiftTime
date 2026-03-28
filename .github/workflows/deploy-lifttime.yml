@@ -23,10 +23,10 @@ jobs:
           set -e
 
           echo "Validating Docker Compose..."
-          docker compose config > /dev/null
+          docker compose --env-file /home/cesar/docker/lifttime/.env config > /dev/null
 
           echo "Testing Docker build..."
-          docker compose build
+          docker compose --env-file /home/cesar/docker/lifttime/.env build
 
           echo "Validation successful"
 
