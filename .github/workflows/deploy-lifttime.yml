@@ -14,17 +14,13 @@ jobs:
     runs-on: self-hosted
     permissions:
       contents: read
-
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Validate LiftTime
         run: |
           set -e
-
-          echo "Navigating to project..."
-          cd /home/cesar/docker/lifttime
-
-          echo "Pulling latest code..."
-          git pull origin main
 
           echo "Validating Docker Compose..."
           docker compose config > /dev/null
@@ -48,23 +44,33 @@ jobs:
           echo "Navigating to project..."
           cd /home/cesar/docker/lifttime
 
-          echo "Pulling latest code..."
-          git pull origin main
+          echo "Deploying exact workflow commit..."
+          git fetch origin
+          git reset --hard $GITHUB_SHA
 
           echo "Starting containers..."
           docker compose up -d
 
           echo "Waiting for app to be ready..."
-          for i in 1 2 3 4 5 6 7 8 9 10; do
+          max_attempts=10
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "[health-check] Attempt $attempt/$max_attempts"
+
             if curl -f http://localhost:3012/en > /dev/null; then
-              echo "App responded successfully"
+              echo "[health-check] SUCCESS on attempt $attempt"
               break
             fi
-            echo "App not ready yet, retrying in 2 seconds..."
+
+            if [ $attempt -eq $max_attempts ]; then
+              echo "[health-check] FAILED after $max_attempts attempts"
+              exit 1
+            fi
+
+            echo "[health-check] App not ready yet, retrying in 2 seconds..."
             sleep 2
+            attempt=$((attempt + 1))
           done
 
-          echo "Final verification..."
-          curl -f http://localhost:3012/en > /dev/null
-
-          echo "Deployment complete"
+          echo "[health-check] Deployment verified"
