@@ -6,7 +6,10 @@ const APP_SESSION_COOKIE_NAME_DEFAULT = "lt_session";
 export interface AuthEnv {
   authentikIssuerUrl: string;
   authentikAuthorizationEndpoint: string;
+  authentikTokenEndpoint: string;
+  authentikJwksUri: string;
   authentikClientId: string;
+  authentikClientSecret: string;
   authentikRedirectUri: string;
   appBaseUrl: string;
   appSessionSecret: string;
@@ -15,6 +18,7 @@ export interface AuthEnv {
   appSessionCookieName: string;
   authAttemptCookieName: string;
   authAttemptTtlSeconds: number;
+  supabaseServiceRoleKey: string;
 }
 
 const getRequired = (name: string): string => {
@@ -71,7 +75,10 @@ export const getAuthEnv = (): AuthEnv => {
       "AUTHENTIK_AUTHORIZATION_ENDPOINT",
       getRequired("AUTHENTIK_AUTHORIZATION_ENDPOINT")
     ),
+    authentikTokenEndpoint: toNormalizedUrl("AUTHENTIK_TOKEN_ENDPOINT", getRequired("AUTHENTIK_TOKEN_ENDPOINT")),
+    authentikJwksUri: toNormalizedUrl("AUTHENTIK_JWKS_URI", getRequired("AUTHENTIK_JWKS_URI")),
     authentikClientId: getRequired("AUTHENTIK_CLIENT_ID"),
+    authentikClientSecret: getRequired("AUTHENTIK_CLIENT_SECRET"),
     authentikRedirectUri: toNormalizedUrl("AUTHENTIK_REDIRECT_URI", getRequired("AUTHENTIK_REDIRECT_URI")),
     appBaseUrl: toNormalizedUrl("APP_BASE_URL", getRequired("APP_BASE_URL")),
     appSessionSecret,
@@ -79,7 +86,7 @@ export const getAuthEnv = (): AuthEnv => {
     appSessionRefreshWindowSeconds,
     appSessionCookieName: process.env.APP_SESSION_COOKIE_NAME?.trim() || APP_SESSION_COOKIE_NAME_DEFAULT,
     authAttemptCookieName: process.env.APP_AUTH_ATTEMPT_COOKIE_NAME?.trim() || AUTH_ATTEMPT_COOKIE_NAME_DEFAULT,
-    authAttemptTtlSeconds
+    authAttemptTtlSeconds,
+    supabaseServiceRoleKey: getRequired("SUPABASE_SERVICE_ROLE_KEY")
   };
 };
-
