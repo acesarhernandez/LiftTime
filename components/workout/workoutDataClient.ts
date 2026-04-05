@@ -342,21 +342,35 @@ export const completeSet = async (params: CompleteSetParams): Promise<void> => {
     throw new Error("INVALID_COMPLETED_SET_REPS");
   }
 
-  await updateRows<DbWorkoutSet>(
-    "workout_sets",
-    {
-      id: `eq.${params.setId}`,
-      workout_exercise_id: `eq.${params.workoutExerciseId}`
+  const response = await fetch("/api/workout/mutate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
     },
-    {
-      set_number: params.setNumber,
-      set_type: params.setType,
-      weight_lbs: params.weightLbs,
-      reps: params.reps,
-      completed: true,
-      completed_at: params.completedAt
-    }
-  );
+    body: JSON.stringify({
+      action: "complete_set",
+      payload: {
+        workoutExerciseId: params.workoutExerciseId,
+        setId: params.setId,
+        setNumber: params.setNumber,
+        setType: params.setType,
+        weightLbs: params.weightLbs,
+        reps: params.reps,
+        completedAt: params.completedAt
+      }
+    })
+  });
+
+  let parsed: { ok?: boolean; error?: string } | null = null;
+  try {
+    parsed = (await response.json()) as { ok?: boolean; error?: string };
+  } catch {
+    parsed = null;
+  }
+
+  if (!response.ok || parsed?.ok !== true) {
+    throw new Error(parsed?.error ?? "MUTATION_FAILED");
+  }
 };
 
 export const addSet = async (params: AddSetParams): Promise<DbWorkoutSet> => {
