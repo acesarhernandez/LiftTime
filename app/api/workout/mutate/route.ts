@@ -53,6 +53,22 @@ interface WorkoutSetRow {
   id: string;
 }
 
+interface WorkoutSetNumberRow {
+  set_number: number;
+}
+
+interface WorkoutSetRecord {
+  id: string;
+  workout_exercise_id: string;
+  set_number: number;
+  set_type: SetType;
+  weight_lbs: number | null;
+  reps: number | null;
+  completed: boolean;
+  completed_at: string | null;
+  created_at: string;
+}
+
 interface SupabaseErrorResponse {
   code?: string;
 }
@@ -281,6 +297,70 @@ const updateCompletedSet = async (
   return Boolean(rows[0]);
 };
 
+const fetchHighestSetNumber = async (
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  workoutExerciseId: string
+): Promise<number> => {
+  const response = await fetch(
+    buildRestUrl(supabaseUrl, "workout_sets", {
+      select: "set_number",
+      workout_exercise_id: `eq.${workoutExerciseId}`,
+      order: "set_number.desc",
+      limit: "1"
+    }),
+    {
+      method: "GET",
+      headers: createServiceHeaders(serviceRoleKey, false),
+      cache: "no-store"
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("WORKOUT_SET_NUMBER_LOOKUP_FAILED");
+  }
+
+  const rows = (await response.json()) as WorkoutSetNumberRow[];
+  return rows[0]?.set_number ?? 0;
+};
+
+const insertSet = async (
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  payload: AddSetPayload,
+  nextSetNumber: number
+): Promise<WorkoutSetRecord> => {
+  const response = await fetch(buildRestUrl(supabaseUrl, "workout_sets"), {
+    method: "POST",
+    headers: {
+      ...createServiceHeaders(serviceRoleKey),
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify({
+      workout_exercise_id: payload.workoutExerciseId,
+      set_number: nextSetNumber,
+      set_type: payload.setType ?? "working",
+      weight_lbs: payload.weightLbs,
+      reps: payload.reps,
+      completed: false,
+      completed_at: null
+    }),
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("WORKOUT_SET_INSERT_FAILED");
+  }
+
+  const rows = (await response.json()) as WorkoutSetRecord[];
+  const created = rows[0];
+  if (!created) {
+    throw new Error("WORKOUT_SET_INSERT_EMPTY");
+  }
+
+  return created;
+};
+
 const parseCompleteSetPayload = (payload: unknown): CompleteSetPayload | null => {
   if (!isObject(payload)) {
     return null;
@@ -492,6 +572,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
     case "add_set":
+      try {
+        const workoutExercise = await loadWorkoutExerciseOwnership(
+          env.supabaseUrl,
+          env.supabaseServiceRoleKey,
+          parsedRequest.payload.workoutExerciseId
+        );
+        if (!workoutExercise) {
+          return notFoundResponse();
+        }
+
+        const isOwner = await verifySessionOwnership(
+          env.supabaseUrl,
+          env.supabaseServiceRoleKey,
+          workoutExercise.session_id,
+          sessionCheck.payload.sub
+        );
+        if (!isOwner) {
+          return forbiddenResponse();
+        }
+
+        const highestSetNumber = await fetchHighestSetNumber(
+          env.supabaseUrl,
+          env.supabaseServiceRoleKey,
+          parsedRequest.payload.workoutExerciseId
+        );
+        const createdSet = await insertSet(env.supabaseUrl, env.supabaseServiceRoleKey, parsedRequest.payload, highestSetNumber + 1);
+
+        return NextResponse.json({
+          ok: true,
+          action: "add_set",
+          data: {
+            set: createdSet
+          }
+        });
+      } catch {
+        return mutationFailedResponse();
+      }
     case "delete_set":
     case "delete_workout_exercises":
       return notImplementedResponse();

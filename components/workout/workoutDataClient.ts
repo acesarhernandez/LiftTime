@@ -374,23 +374,49 @@ export const completeSet = async (params: CompleteSetParams): Promise<void> => {
 };
 
 export const addSet = async (params: AddSetParams): Promise<DbWorkoutSet> => {
-  const existing = await fetchRows<Pick<DbWorkoutSet, "set_number">>("workout_sets", {
-    select: "set_number",
-    workout_exercise_id: `eq.${params.workoutExerciseId}`,
-    order: "set_number.desc"
+  const response = await fetch("/api/workout/mutate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      action: "add_set",
+      payload: {
+        workoutExerciseId: params.workoutExerciseId,
+        weightLbs: params.weightLbs,
+        reps: params.reps,
+        setType: params.setType
+      }
+    })
   });
 
-  const nextSetNumber = (existing[0]?.set_number ?? 0) + 1;
+  let parsed:
+    | {
+        ok?: boolean;
+        error?: string;
+        data?: {
+          set?: DbWorkoutSet;
+        };
+      }
+    | null = null;
+  try {
+    parsed = (await response.json()) as {
+      ok?: boolean;
+      error?: string;
+      data?: {
+        set?: DbWorkoutSet;
+      };
+    };
+  } catch {
+    parsed = null;
+  }
 
-  return insertRow<DbWorkoutSet>("workout_sets", {
-    workout_exercise_id: params.workoutExerciseId,
-    set_number: nextSetNumber,
-    set_type: params.setType ?? "working",
-    weight_lbs: params.weightLbs,
-    reps: params.reps,
-    completed: false,
-    completed_at: null
-  });
+  const createdSet = parsed?.data?.set;
+  if (!response.ok || parsed?.ok !== true || !createdSet) {
+    throw new Error(parsed?.error ?? "MUTATION_FAILED");
+  }
+
+  return createdSet;
 };
 
 export const deleteSet = async (params: DeleteSetParams): Promise<void> => {
