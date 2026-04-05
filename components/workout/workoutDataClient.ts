@@ -479,13 +479,28 @@ export const reorderWorkoutExercises = async (params: ReorderWorkoutExercisesPar
 };
 
 export const deleteWorkoutExercises = async (params: DeleteWorkoutExercisesParams): Promise<void> => {
-  const uniqueIds = uniqueStrings(params.workoutExerciseIds);
-  for (const workoutExerciseId of uniqueIds) {
-    await deleteRows("workout_exercises", {
-      id: `eq.${workoutExerciseId}`,
-      session_id: `eq.${params.sessionId}`
-    });
+  const response = await fetch("/api/workout/mutate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      action: "delete_workout_exercises",
+      payload: {
+        sessionId: params.sessionId,
+        workoutExerciseIds: uniqueStrings(params.workoutExerciseIds)
+      }
+    })
+  });
+
+  let parsed: { ok?: boolean; error?: string } | null = null;
+  try {
+    parsed = (await response.json()) as { ok?: boolean; error?: string };
+  } catch {
+    parsed = null;
   }
 
-  await normalizeSessionOrderIndexes(params.sessionId);
+  if (!response.ok || parsed?.ok !== true) {
+    throw new Error(parsed?.error ?? "MUTATION_FAILED");
+  }
 };

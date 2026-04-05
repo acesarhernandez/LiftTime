@@ -907,6 +907,7 @@ export const SessionOverview = ({ authenticatedUserId }: SessionOverviewProps) =
 
   const removeExercisesById = (ids: string[]) => {
     const toRemove = new Set(ids);
+    const previousSession = session;
     const removedIds = session.exercises.filter((exercise) => toRemove.has(exercise.id)).map((exercise) => exercise.id);
 
     setSession((previous) => {
@@ -932,6 +933,7 @@ export const SessionOverview = ({ authenticatedUserId }: SessionOverviewProps) =
         });
         setPersistenceError(null);
       } catch (error) {
+        setSession(previousSession);
         const message = error instanceof Error ? error.message : "Failed to delete exercise.";
         setPersistenceError(message);
       }
