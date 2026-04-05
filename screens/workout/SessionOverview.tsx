@@ -1,6 +1,7 @@
+"use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 
-import { fetchRows } from "@/components/admin/supabaseClient";
 import { ExerciseRow } from "@/components/workout/ExerciseRow";
 import { SupersetRow } from "@/components/workout/SupersetRow";
 import { TimerStrip } from "@/components/workout/TimerStrip";
@@ -9,9 +10,7 @@ import {
   completeSet as persistCompleteSet,
   deleteSet as persistDeleteSet,
   deleteWorkoutExercises as persistDeleteWorkoutExercises,
-  loadOrCreateActiveSession,
   reorderWorkoutExercises as persistReorderWorkoutExercises,
-  requireAuthenticatedUser,
   type BootstrapWorkoutExerciseInput,
   type DbExerciseCatalog,
   type DbWorkoutExercise,
@@ -372,6 +371,10 @@ interface StarterExerciseRow {
   slug: string;
 }
 
+interface WorkoutBootstrapErrorResponse {
+  error?: string;
+}
+
 const toWorkoutEquipment = (equipment: string[]): WorkoutExercise["equipment"] => {
   if (equipment.includes("barbell")) {
     return "barbell";
@@ -521,10 +524,13 @@ const getMusclePriorityScore = (muscleGroup: string) => {
   return 0;
 };
 
-export const SessionOverview = () => {
+interface SessionOverviewProps {
+  authenticatedUserId: string;
+}
+
+export const SessionOverview = ({ authenticatedUserId }: SessionOverviewProps) => {
   const [session, setSession] = useState<WorkoutSession>(() => createMockSession());
   const [isSessionLoading, setIsSessionLoading] = useState(true);
-  const [isAuthBlocked, setIsAuthBlocked] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const [preferences] = useState<WorkoutPreferences>(() => getStoredPreferences());
@@ -556,44 +562,26 @@ export const SessionOverview = () => {
       setSessionError(null);
 
       try {
-        const authUser = await requireAuthenticatedUser();
-
-        const starterRows = await fetchRows<StarterExerciseRow>("exercises", {
-          select: "id,slug",
-          slug: `in.(${STARTER_EXERCISE_SLUGS.join(",")})`
+        const response = await fetch("/api/workout/bootstrap", {
+          method: "GET",
+          cache: "no-store"
         });
 
-        const starterIdBySlug = starterRows.reduce<Record<string, string>>((accumulator, row) => {
-          accumulator[row.slug] = row.id;
-          return accumulator;
-        }, {});
-
-        for (const slug of STARTER_EXERCISE_SLUGS) {
-          if (!starterIdBySlug[slug]) {
-            throw new Error(`MISSING_STARTER_EXERCISE:${slug}`);
+        if (!response.ok) {
+          let errorCode = "WORKOUT_BOOTSTRAP_FAILED";
+          try {
+            const errorPayload = (await response.json()) as WorkoutBootstrapErrorResponse;
+            if (errorPayload.error && errorPayload.error.trim().length > 0) {
+              errorCode = errorPayload.error.trim();
+            }
+          } catch {
+            // Keep fallback error code.
           }
+
+          throw new Error(errorCode);
         }
 
-        const template = createMockSession();
-        const seededExerciseIdByTemplateId = Object.entries(STARTER_EXERCISE_SLUG_BY_TEMPLATE_ID).reduce<
-          Record<string, string>
-        >((accumulator, [templateId, slug]) => {
-          const seededId = starterIdBySlug[slug];
-          if (!seededId) {
-            throw new Error(`MISSING_STARTER_EXERCISE:${slug}`);
-          }
-
-          accumulator[templateId] = seededId;
-          return accumulator;
-        }, {});
-
-        const bootstrapExercises = buildBootstrapExercises(template, seededExerciseIdByTemplateId);
-
-        const loaded = await loadOrCreateActiveSession({
-          userId: authUser.id,
-          name: template.name,
-          bootstrapExercises
-        });
+        const loaded = (await response.json()) as LoadOrCreateSessionResult;
 
         if (!active) {
           return;
@@ -606,11 +594,6 @@ export const SessionOverview = () => {
         }
 
         const message = loadError instanceof Error ? loadError.message : "Failed to load workout session.";
-        if (message === "AUTH_REQUIRED") {
-          setIsAuthBlocked(true);
-          return;
-        }
-
         setSessionError(message);
       } finally {
         if (active) {
@@ -624,7 +607,7 @@ export const SessionOverview = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [authenticatedUserId]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -1096,14 +1079,6 @@ export const SessionOverview = () => {
       onStopRest={stopRest}
     />
   ) : null;
-
-  if (isAuthBlocked) {
-    return (
-      <div className="flex h-dvh items-center justify-center bg-[#0d0d0d] px-4 text-center">
-        <p className="font-data text-[13px] text-[#8a8478]">Sign in is required to access the active workout.</p>
-      </div>
-    );
-  }
 
   if (isSessionLoading) {
     return (
