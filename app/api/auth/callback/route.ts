@@ -7,20 +7,8 @@ import {
   exchangeCodeForTokens,
   validateIdToken
 } from "@/lib/server/auth/oidc";
-import {
-  MappingIntegrityConflictError,
-  PrincipalWiringError,
-  createSyntheticTechnicalEmail,
-  normalizeMaybeEmail,
-  resolveOrCreateTechnicalPrincipal
-} from "@/lib/server/auth/principal";
-import {
-  buildAppSessionCookie,
-  createAppSessionPayload,
-  resolveSafeReturnTo,
-  shouldUseSecureCookies,
-  verifyAuthAttemptToken
-} from "@/lib/server/auth/session";
+import { completeValidatedIdentitySignIn } from "@/lib/server/auth/signin";
+import { shouldUseSecureCookies, verifyAuthAttemptToken } from "@/lib/server/auth/session";
 
 export const runtime = "nodejs";
 
@@ -28,19 +16,6 @@ type CallbackFailureReason = "auth_failed" | "state_invalid" | "token_invalid" |
 
 const DEFAULT_AUTH_ATTEMPT_COOKIE_NAME = "lt_auth_attempt";
 const DEFAULT_APP_SESSION_COOKIE_NAME = "lt_session";
-
-interface UsersProfileRow {
-  id: string;
-  email: string;
-  is_disabled: boolean;
-}
-
-interface SupabaseErrorResponse {
-  code?: string;
-  message?: string;
-  msg?: string;
-  error?: string;
-}
 
 const getAuthAttemptCookieNameFromProcessEnv = (): string => {
   return process.env.APP_AUTH_ATTEMPT_COOKIE_NAME?.trim() || DEFAULT_AUTH_ATTEMPT_COOKIE_NAME;
@@ -67,173 +42,6 @@ const buildLoginUrl = (appBaseUrl: string, reason?: CallbackFailureReason): URL 
   }
 
   return url;
-};
-
-const buildSuccessUrl = (appBaseUrl: string, returnTo: string): URL => {
-  const safeReturnTo = resolveSafeReturnTo(returnTo);
-  return new URL(safeReturnTo, appBaseUrl);
-};
-
-const createServiceHeaders = (serviceRoleKey: string, includeJson = true): HeadersInit => {
-  const headers: Record<string, string> = {
-    apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`
-  };
-
-  if (includeJson) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  return headers;
-};
-
-const parseSupabaseError = async (response: Response): Promise<SupabaseErrorResponse | null> => {
-  try {
-    return (await response.json()) as SupabaseErrorResponse;
-  } catch {
-    return null;
-  }
-};
-
-const fetchUsersProfile = async (
-  input: {
-    supabaseUrl: string;
-    serviceRoleKey: string;
-    authUserId: string;
-  }
-): Promise<UsersProfileRow | null> => {
-  const query = new URLSearchParams({
-    select: "id,email,is_disabled",
-    id: `eq.${input.authUserId}`,
-    limit: "1"
-  });
-
-  const response = await fetch(`${input.supabaseUrl}/rest/v1/users_profile?${query.toString()}`, {
-    method: "GET",
-    headers: createServiceHeaders(input.serviceRoleKey, false),
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("PROFILE_LOOKUP_FAILED");
-  }
-
-  const rows = (await response.json()) as UsersProfileRow[];
-  return rows[0] ?? null;
-};
-
-const updateUsersProfileEmail = async (
-  input: {
-    supabaseUrl: string;
-    serviceRoleKey: string;
-    authUserId: string;
-    email: string;
-  }
-): Promise<void> => {
-  const query = new URLSearchParams({
-    id: `eq.${input.authUserId}`
-  });
-
-  const response = await fetch(`${input.supabaseUrl}/rest/v1/users_profile?${query.toString()}`, {
-    method: "PATCH",
-    headers: createServiceHeaders(input.serviceRoleKey),
-    body: JSON.stringify({
-      email: input.email
-    }),
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error("PROFILE_EMAIL_REPAIR_FAILED");
-  }
-};
-
-const insertUsersProfile = async (
-  input: {
-    supabaseUrl: string;
-    serviceRoleKey: string;
-    authUserId: string;
-    bootstrapEmail: string;
-  }
-): Promise<UsersProfileRow | null> => {
-  const response = await fetch(`${input.supabaseUrl}/rest/v1/users_profile`, {
-    method: "POST",
-    headers: {
-      ...createServiceHeaders(input.serviceRoleKey),
-      Prefer: "return=representation"
-    },
-    body: JSON.stringify({
-      id: input.authUserId,
-      email: input.bootstrapEmail
-    }),
-    cache: "no-store"
-  });
-
-  if (response.ok) {
-    const rows = (await response.json()) as UsersProfileRow[];
-    return rows[0] ?? null;
-  }
-
-  const maybeError = await parseSupabaseError(response);
-  if (response.status === 409 || maybeError?.code === "23505") {
-    return null;
-  }
-
-  throw new Error("PROFILE_INSERT_FAILED");
-};
-
-const ensureUsersProfile = async (
-  input: {
-    supabaseUrl: string;
-    serviceRoleKey: string;
-    authUserId: string;
-    bootstrapEmail: string;
-  }
-): Promise<UsersProfileRow> => {
-  const existing = await fetchUsersProfile(input);
-  if (existing) {
-    if (!existing.email || existing.email.trim().length === 0) {
-      await updateUsersProfileEmail({
-        supabaseUrl: input.supabaseUrl,
-        serviceRoleKey: input.serviceRoleKey,
-        authUserId: input.authUserId,
-        email: input.bootstrapEmail
-      });
-
-      return {
-        ...existing,
-        email: input.bootstrapEmail
-      };
-    }
-
-    return existing;
-  }
-
-  const inserted = await insertUsersProfile(input);
-  if (inserted) {
-    return inserted;
-  }
-
-  const raced = await fetchUsersProfile(input);
-  if (raced) {
-    if (!raced.email || raced.email.trim().length === 0) {
-      await updateUsersProfileEmail({
-        supabaseUrl: input.supabaseUrl,
-        serviceRoleKey: input.serviceRoleKey,
-        authUserId: input.authUserId,
-        email: input.bootstrapEmail
-      });
-
-      return {
-        ...raced,
-        email: input.bootstrapEmail
-      };
-    }
-
-    return raced;
-  }
-
-  throw new Error("PROFILE_BOOTSTRAP_FAILED");
 };
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -306,92 +114,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       expectedNonce: authAttemptResult.payload.nonce
     });
   } catch (error) {
-    const code =
+    const logCode =
       error instanceof OidcTokenExchangeError || error instanceof OidcTokenValidationError
         ? error.message
         : "TOKEN_PROCESSING_FAILED";
 
-    return fail("token_invalid", { logCode: code });
+    return fail("token_invalid", { logCode });
   }
 
-  let authUserId: string;
-  const fallbackTechnicalEmail = createSyntheticTechnicalEmail({
-    issuer: validatedIdentity.issuer,
-    subject: validatedIdentity.subject
+  const signInResult = await completeValidatedIdentitySignIn({
+    env,
+    validatedIdentity,
+    secure,
+    returnTo: authAttemptResult.payload.returnTo || "/",
+    authAttemptCookieName: env.authAttemptCookieName
   });
-  const bootstrapEmail = normalizeMaybeEmail(validatedIdentity.email) ?? fallbackTechnicalEmail;
 
-  try {
-    const principalResult = await resolveOrCreateTechnicalPrincipal({
-      supabaseUrl: env.supabaseUrl,
-      supabaseServiceRoleKey: env.supabaseServiceRoleKey,
-      identity: {
-        issuer: validatedIdentity.issuer,
-        subject: validatedIdentity.subject
-      },
-      providerEmail: validatedIdentity.email
+  if (!signInResult.ok) {
+    return fail(signInResult.reason, {
+      logCode: signInResult.logCode,
+      clearAppSession: signInResult.clearAppSession
     });
-
-    if (principalResult.outcome === "mapping_integrity_conflict") {
-      return fail("auth_failed", { logCode: "MAPPING_INTEGRITY_CONFLICT" });
-    }
-
-    if (
-      principalResult.outcome === "resolved_from_race_winner" &&
-      principalResult.attemptedOrphanCleanup &&
-      principalResult.orphanCleanupSucceeded === false
-    ) {
-      console.error("[auth.callback] auth_failed", { code: "ORPHAN_CLEANUP_FAILED" });
-    }
-
-    authUserId = principalResult.authUserId;
-  } catch (error) {
-    if (error instanceof MappingIntegrityConflictError) {
-      return fail("auth_failed", { logCode: "MAPPING_INTEGRITY_CONFLICT" });
-    }
-
-    if (error instanceof PrincipalWiringError) {
-      return fail("auth_failed", { logCode: error.code });
-    }
-
-    return fail("auth_failed", { logCode: "PRINCIPAL_RESOLUTION_FAILED" });
   }
 
-  let profile: UsersProfileRow;
-  try {
-    profile = await ensureUsersProfile({
-      supabaseUrl: env.supabaseUrl,
-      serviceRoleKey: env.supabaseServiceRoleKey,
-      authUserId,
-      bootstrapEmail
-    });
-  } catch {
-    return fail("auth_failed", { logCode: "PROFILE_BOOTSTRAP_FAILED" });
-  }
-
-  if (profile.is_disabled) {
-    return fail("disabled", { logCode: "USER_DISABLED", clearAppSession: true });
-  }
-
-  try {
-    const appSessionPayload = createAppSessionPayload({
-      subject: authUserId,
-      ttlSeconds: env.appSessionTtlSeconds
-    });
-    const appSessionCookie = buildAppSessionCookie({
-      cookieName: env.appSessionCookieName,
-      payload: appSessionPayload,
-      secret: env.appSessionSecret,
-      secure,
-      maxAgeSeconds: env.appSessionTtlSeconds
-    });
-
-    const successUrl = buildSuccessUrl(env.appBaseUrl, authAttemptResult.payload.returnTo || "/");
-    const response = NextResponse.redirect(successUrl, { status: 302 });
-    response.cookies.set(appSessionCookie.name, appSessionCookie.value, appSessionCookie.options);
-    clearCookie(response, { name: env.authAttemptCookieName, secure });
-    return response;
-  } catch {
-    return fail("auth_failed", { logCode: "SESSION_ISSUE_FAILED" });
-  }
+  return signInResult.response;
 }
+
