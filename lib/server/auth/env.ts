@@ -4,6 +4,7 @@ const AUTH_ATTEMPT_COOKIE_NAME_DEFAULT = "lt_auth_attempt";
 const APP_SESSION_COOKIE_NAME_DEFAULT = "lt_session";
 
 export interface AuthEnv {
+  supabaseUrl: string;
   authentikIssuerUrl: string;
   authentikAuthorizationEndpoint: string;
   authentikTokenEndpoint: string;
@@ -70,6 +71,7 @@ export const getAuthEnv = (): AuthEnv => {
   }
 
   return {
+    supabaseUrl: toNormalizedUrl("NEXT_PUBLIC_SUPABASE_URL", getRequired("NEXT_PUBLIC_SUPABASE_URL")),
     authentikIssuerUrl: toNormalizedUrl("AUTHENTIK_ISSUER_URL", getRequired("AUTHENTIK_ISSUER_URL")),
     authentikAuthorizationEndpoint: toNormalizedUrl(
       "AUTHENTIK_AUTHORIZATION_ENDPOINT",

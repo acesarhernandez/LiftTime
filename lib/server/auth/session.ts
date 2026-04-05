@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 const AUTH_ATTEMPT_VERSION = 1;
+const APP_SESSION_VERSION = 1;
 const SAFE_RETURN_TO_FALLBACK = "/";
 
 export interface AuthAttemptPayload {
@@ -26,9 +27,23 @@ export interface AppSessionPayload {
   sid: string;
 }
 
+export interface AppSessionVerifyResult {
+  ok: boolean;
+  payload?: AppSessionPayload;
+  reason?: "missing" | "malformed" | "signature" | "payload" | "expired";
+}
+
 interface BuildAuthAttemptCookieInput {
   cookieName: string;
   payload: AuthAttemptPayload;
+  secret: string;
+  secure: boolean;
+  maxAgeSeconds: number;
+}
+
+interface BuildAppSessionCookieInput {
+  cookieName: string;
+  payload: AppSessionPayload;
   secret: string;
   secure: boolean;
   maxAgeSeconds: number;
@@ -92,7 +107,29 @@ export const createAuthAttemptPayload = (input: { returnTo: string; ttlSeconds: 
   };
 };
 
+export const createAppSessionPayload = (input: { subject: string; ttlSeconds: number }): AppSessionPayload => {
+  const subject = input.subject.trim();
+  if (!subject) {
+    throw new Error("App session subject must not be blank");
+  }
+
+  const issuedAt = Math.floor(Date.now() / 1000);
+  return {
+    v: APP_SESSION_VERSION,
+    sub: subject,
+    iat: issuedAt,
+    exp: issuedAt + input.ttlSeconds,
+    sid: createRandomToken()
+  };
+};
+
 export const signAuthAttemptPayload = (payload: AuthAttemptPayload, secret: string): string => {
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const signature = createSignature(encodedPayload, secret);
+  return `${encodedPayload}.${base64UrlEncode(signature)}`;
+};
+
+export const signAppSessionPayload = (payload: AppSessionPayload, secret: string): string => {
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
   const signature = createSignature(encodedPayload, secret);
   return `${encodedPayload}.${base64UrlEncode(signature)}`;
@@ -182,3 +219,87 @@ export const buildAuthAttemptCookie = (input: BuildAuthAttemptCookieInput) => {
   };
 };
 
+export const buildAppSessionCookie = (input: BuildAppSessionCookieInput) => {
+  return {
+    name: input.cookieName,
+    value: signAppSessionPayload(input.payload, input.secret),
+    options: {
+      httpOnly: true as const,
+      sameSite: "lax" as const,
+      secure: input.secure,
+      path: "/",
+      maxAge: input.maxAgeSeconds
+    }
+  };
+};
+
+export const verifyAppSessionToken = (
+  token: string | undefined,
+  secret: string,
+  nowSeconds = Math.floor(Date.now() / 1000)
+): AppSessionVerifyResult => {
+  if (!token) {
+    return { ok: false, reason: "missing" };
+  }
+
+  const parts = token.split(".");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return { ok: false, reason: "malformed" };
+  }
+
+  const [encodedPayload, encodedSignature] = parts;
+  const expectedSignature = createSignature(encodedPayload, secret);
+
+  let providedSignature: Buffer;
+  try {
+    providedSignature = base64UrlDecode(encodedSignature);
+  } catch {
+    return { ok: false, reason: "malformed" };
+  }
+
+  if (
+    providedSignature.length !== expectedSignature.length ||
+    !timingSafeEqual(providedSignature, expectedSignature)
+  ) {
+    return { ok: false, reason: "signature" };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(base64UrlDecode(encodedPayload).toString("utf8"));
+  } catch {
+    return { ok: false, reason: "payload" };
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    return { ok: false, reason: "payload" };
+  }
+
+  const payload = parsed as Partial<AppSessionPayload>;
+  if (
+    payload.v !== APP_SESSION_VERSION ||
+    typeof payload.sub !== "string" ||
+    payload.sub.trim().length === 0 ||
+    typeof payload.sid !== "string" ||
+    payload.sid.length === 0 ||
+    typeof payload.iat !== "number" ||
+    typeof payload.exp !== "number"
+  ) {
+    return { ok: false, reason: "payload" };
+  }
+
+  if (payload.exp <= nowSeconds) {
+    return { ok: false, reason: "expired" };
+  }
+
+  return {
+    ok: true,
+    payload: {
+      v: payload.v,
+      sub: payload.sub.trim(),
+      sid: payload.sid,
+      iat: payload.iat,
+      exp: payload.exp
+    }
+  };
+};
