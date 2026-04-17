@@ -1,0 +1,10 @@
+services:
+  lifttime:
+    image: ${DEPLOY_IMAGE}
+    platform: linux/amd64
+    container_name: lifttime
+    env_file:
+      - /home/cesar/docker/lifttime/.env
+    ports:
+      - "7000:3000"
+    restart: unless-stopped

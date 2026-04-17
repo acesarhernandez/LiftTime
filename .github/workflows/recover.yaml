@@ -1,0 +1,28 @@
+name: Recover Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_manifest_path:
+        description: Absolute path to retained release-manifest.json on deploy host
+        required: true
+        type: string
+      target_environment:
+        description: Environment to recover
+        required: true
+        default: development
+        type: choice
+        options:
+          - development
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  recover:
+    uses: acesarhernandez/CI-CD-Git-Workflow/.github/workflows/reusable-recover.yaml@main
+    with:
+      release_manifest_path: ${{ inputs.release_manifest_path }}
+      target_environment: ${{ inputs.target_environment }}
+      config_path: cicd.app.yaml

@@ -1,0 +1,63 @@
+schema_version: "1"
+kind: cicd.app
+
+app:
+  name: lifttime
+  display_name: LiftTime
+  repository: acesarhernandez/LiftTime
+  service: lifttime
+  role: frontend
+
+profile:
+  id: container-single
+  deployment_unit: image
+  runtime_family: docker
+  default_port: 3000
+
+deploy_modes:
+  primary: image
+  allow_source_deploy: false
+
+build:
+  context: .
+  dockerfile: Dockerfile
+  platforms:
+    - linux/amd64
+  image:
+    registry: ghcr.io
+    repository: acesarhernandez/lifttime
+
+deploy:
+  strategy: docker-compose
+  target:
+    type: docker-compose-service
+    name: lifttime
+  compose:
+    file: docker-compose.deploy.yml
+
+verify:
+  type: http
+  name: health
+  method: GET
+  url: http://127.0.0.1:7000/api/health
+  expect:
+    status_codes: [200]
+    body_contains: '"status":"ok"'
+
+environments:
+  development:
+    deploy:
+      target:
+        name: lifttime-development
+  staging:
+    deploy:
+      target:
+        name: lifttime-staging
+  production:
+    deploy:
+      target:
+        name: lifttime-production
+
+metadata:
+  runtime_contract:
+    env_file: /home/cesar/docker/lifttime/.env

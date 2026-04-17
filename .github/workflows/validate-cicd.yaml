@@ -1,0 +1,19 @@
+name: Validate LiftTime CI/CD Config
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: acesarhernandez/CI-CD-Git-Workflow/.github/workflows/reusable-validate.yaml@main
+    with:
+      config_path: cicd.app.yaml
+      schema_path: cicd.app.schema.json
+      target_environment: development

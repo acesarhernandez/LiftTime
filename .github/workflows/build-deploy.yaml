@@ -1,0 +1,63 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build_publish:
+    uses: acesarhernandez/CI-CD-Git-Workflow/.github/workflows/reusable-build-publish.yaml@main
+    with:
+      config_path: cicd.app.yaml
+      target_environment: development
+
+  deploy:
+    needs: build_publish
+    uses: acesarhernandez/CI-CD-Git-Workflow/.github/workflows/reusable-deploy.yaml@main
+    with:
+      release_manifest_artifact_name: ${{ needs.build_publish.outputs.release_manifest_artifact_name }}
+      target_environment: development
+      config_path: cicd.app.yaml
+
+  verify:
+    needs:
+      - build_publish
+      - deploy
+    uses: acesarhernandez/CI-CD-Git-Workflow/.github/workflows/reusable-verify.yaml@main
+    with:
+      release_manifest_artifact_name: ${{ needs.build_publish.outputs.release_manifest_artifact_name }}
+      target_environment: development
+
+  retain_manifest:
+    needs:
+      - build_publish
+      - verify
+    runs-on: self-hosted
+    steps:
+      - name: Download release manifest artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build_publish.outputs.release_manifest_artifact_name }}
+          path: retained-manifest
+
+      - name: Store retained release manifest
+        shell: bash
+        run: |
+          release_id="${{ needs.build_publish.outputs.release_id }}"
+          target_dir="/home/cesar/docker/lifttime/releases/${release_id}"
+          mkdir -p "$target_dir"
+
+          manifest_file=$(find retained-manifest -maxdepth 1 -name '*.json' | head -n 1)
+          if [[ -z "$manifest_file" ]]; then
+            echo "No manifest JSON file found in retained-manifest." >&2
+            exit 1
+          fi
+
+          cp "$manifest_file" "$target_dir/release-manifest.json"
+          echo "Retained manifest at $target_dir/release-manifest.json"
